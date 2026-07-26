@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.DS_Store
+.env
+.env.*
+.claude/settings.local.json
+
+# ONNX model weights — downloaded, not authored. See vespa-app/models/README.md
+vespa-app/models/*.onnx
+
+# Generation cache for the questionnaire corpus. The corpus itself IS committed
+# (we authored it); this is just the LLM call cache that rebuilds it for free.
+benchmark/.synthetic-cache.json

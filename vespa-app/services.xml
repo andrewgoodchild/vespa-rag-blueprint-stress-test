@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright Vespa.ai. Licensed under the terms of the Apache 2.0 license. See LICENSE in the
+project root. -->
+<!-- MODIFIED from vespa-engine/sample-apps rag-blueprint/app/services.xml: local
+     variant with the OpenAI client, secrets vault and RAG searcher chain removed
+     (Vespa Cloud only); retrieval and ranking are unchanged. See
+     THIRD_PARTY_NOTICES.md. -->
+<services version="1.0" xmlns:deploy="vespa" xmlns:preprocess="properties"
+    minimum-required-vespa-version="8.519.55">
+
+    <container id="default" version="1.0">
+        <document-processing />
+        <document-api />
+        <component id="nomicmb" type="hugging-face-embedder">
+            <transformer-model
+                url="https://data.vespa-cloud.com/onnx_models/nomic-ai-modernbert-embed-base/model.onnx" />
+            <transformer-token-type-ids />
+            <tokenizer-model
+                url="https://data.vespa-cloud.com/onnx_models/nomic-ai-modernbert-embed-base/tokenizer.json" />
+            <transformer-output>token_embeddings</transformer-output>
+            <max-tokens>8192</max-tokens>
+            <prepend>
+                <query>search_query:</query>
+                <document>search_document:</document>
+            </prepend>
+        </component>
+        <component id="tokenizer" type="hugging-face-tokenizer">
+            <model path="models/ce_tokenizer.json"/>
+        </component>
+        <component id="colbert" type="colbert-embedder">
+            <transformer-model path="models/colbert.onnx"/>
+            <tokenizer-model path="models/colbert_tok.json"/>
+        </component>
+        <search />
+        <nodes>
+            <node hostalias="node1" />
+        </nodes>
+    </container>
+
+    <content id="content" version="1.0">
+        <min-redundancy>1</min-redundancy>
+        <documents>
+            <document type="doc" mode="index" />
+            <document type="docp" mode="index" />
+            <document type="rfq" mode="index" />
+        </documents>
+        <nodes>
+            <node hostalias="node1" distribution-key="0" />
+        </nodes>
+    </content>
+
+</services>

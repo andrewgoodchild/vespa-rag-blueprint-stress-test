@@ -1,0 +1,1 @@
+{"expr": "0.353475*bm25(title) + 0.268666*bm25(chunks) + 3.698572*max_chunk_sim_scores + 3.698572*avg_top_3_chunk_sim_scores + 6.713463*title_sim + 0.249344*colbert_max_sim"}

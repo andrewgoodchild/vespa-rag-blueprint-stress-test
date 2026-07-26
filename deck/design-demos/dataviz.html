@@ -1,0 +1,376 @@
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root{
+    --blue:#0047FF;
+    --ink:#111111;
+    --grey:#8A8A8A;
+    --line:#111111;
+    --paper:#FFFFFF;
+    --lightgrey:#E6E6E6;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#333;font-family:'Archivo',sans-serif;-webkit-font-smoothing:antialiased;}
+
+  .slide{
+    position:relative;
+    width:1920px;height:1080px;
+    background:var(--paper);
+    overflow:hidden;
+    color:var(--ink);
+  }
+
+  /* ---------- shared framing ---------- */
+  .frame{position:absolute;inset:72px;}
+  .topbar{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    border-bottom:6px solid var(--ink);
+    padding-bottom:18px;
+  }
+  .topbar .kicker{
+    font-family:'Space Mono',monospace;font-weight:700;
+    font-size:20px;letter-spacing:0.24em;text-transform:uppercase;
+  }
+  .topbar .meta{
+    font-family:'Space Mono',monospace;font-weight:400;
+    font-size:20px;letter-spacing:0.06em;color:var(--ink);
+    text-align:right;
+  }
+  .footbar{
+    position:absolute;left:72px;right:72px;bottom:56px;
+    display:flex;justify-content:space-between;align-items:center;
+    border-top:3px solid var(--ink);
+    padding-top:16px;
+    font-family:'Space Mono',monospace;font-size:18px;letter-spacing:0.12em;
+    text-transform:uppercase;color:var(--grey);
+  }
+  .footbar strong{color:var(--ink);}
+
+  /* ================= SLIDE 1 — HERO ================= */
+  .hero-title{
+    position:absolute;left:72px;top:210px;width:1050px;
+  }
+  .hero-title h1{
+    font-family:'Archivo',sans-serif;font-weight:900;
+    font-size:132px;line-height:0.90;letter-spacing:-0.035em;
+    text-transform:uppercase;
+  }
+  .hero-title h1 .accent{color:var(--blue);}
+  .hero-sub{
+    margin-top:44px;
+    font-family:'Space Grotesk',sans-serif;font-weight:500;
+    font-size:32px;line-height:1.28;letter-spacing:-0.01em;
+    max-width:900px;color:var(--ink);
+  }
+  .hero-sub b{font-weight:700;}
+
+  .tags{
+    position:absolute;left:72px;bottom:150px;
+    display:flex;gap:14px;flex-wrap:wrap;max-width:1000px;
+  }
+  .tag{
+    font-family:'Space Mono',monospace;font-weight:700;
+    font-size:19px;letter-spacing:0.04em;
+    border:2.5px solid var(--ink);padding:11px 18px;
+    text-transform:uppercase;
+  }
+
+  /* right stat block */
+  .statblock{
+    position:absolute;top:170px;right:0;width:660px;height:760px;
+    background:var(--blue);color:#fff;
+    display:flex;flex-direction:column;justify-content:space-between;
+    padding:60px 56px;
+  }
+  .statblock .lab{
+    font-family:'Space Mono',monospace;font-weight:700;
+    font-size:22px;letter-spacing:0.22em;text-transform:uppercase;
+    color:rgba(255,255,255,.85);
+  }
+  .stat-num{
+    font-family:'Archivo',sans-serif;font-weight:900;
+    letter-spacing:-0.04em;line-height:0.82;
+  }
+  .stat-from .stat-num{font-size:150px;color:rgba(255,255,255,.5);}
+  .stat-to .stat-num{font-size:224px;color:#fff;}
+  .stat-row-lab{
+    font-family:'Space Mono',monospace;font-weight:700;font-size:20px;
+    letter-spacing:0.18em;text-transform:uppercase;margin-bottom:6px;
+    color:rgba(255,255,255,.85);
+  }
+  .stat-arrow{
+    font-family:'Archivo',sans-serif;font-weight:900;font-size:72px;
+    line-height:0.6;margin:6px 0;color:#fff;
+  }
+  .stat-metric{
+    display:flex;align-items:baseline;gap:16px;
+    border-top:3px solid rgba(255,255,255,.5);padding-top:22px;
+  }
+  .stat-metric .big{font-family:'Archivo',sans-serif;font-weight:800;font-size:40px;letter-spacing:-0.02em;}
+  .stat-metric .small{font-family:'Space Mono',monospace;font-size:19px;letter-spacing:0.06em;color:rgba(255,255,255,.85);text-transform:uppercase;}
+
+  /* ================= SLIDE 2 — RESULTS ================= */
+  .r-head{position:absolute;left:72px;top:196px;}
+  .r-head h2{
+    font-family:'Archivo',sans-serif;font-weight:900;
+    font-size:78px;line-height:0.92;letter-spacing:-0.03em;text-transform:uppercase;
+  }
+  .r-head h2 .accent{color:var(--blue);}
+  .r-head .desc{
+    margin-top:20px;font-family:'Space Grotesk',sans-serif;font-weight:500;
+    font-size:26px;letter-spacing:-0.01em;max-width:1180px;line-height:1.3;color:var(--ink);
+  }
+  .r-head .desc b{font-weight:700;color:var(--blue);}
+
+  .chart{
+    position:absolute;left:72px;right:72px;top:420px;
+  }
+  /* column header row */
+  .col-head{
+    display:grid;grid-template-columns:520px 1fr 300px;
+    align-items:end;
+    border-bottom:3px solid var(--ink);padding-bottom:10px;margin-bottom:6px;
+    font-family:'Space Mono',monospace;font-weight:700;font-size:17px;
+    letter-spacing:0.14em;text-transform:uppercase;color:var(--grey);
+  }
+  .col-head .c-cost{text-align:right;}
+
+  .bar-row{
+    display:grid;grid-template-columns:520px 1fr 300px;
+    align-items:center;
+    height:66px;border-bottom:1.5px solid var(--lightgrey);
+  }
+  .bar-row .name{
+    font-family:'Archivo',sans-serif;font-weight:700;font-size:24px;
+    letter-spacing:-0.01em;padding-right:24px;
+  }
+  .bar-row .name .idx{
+    font-family:'Space Mono',monospace;font-weight:700;font-size:16px;
+    color:var(--grey);margin-right:12px;
+  }
+  .track{position:relative;height:100%;display:flex;align-items:center;}
+  .bar{
+    height:38px;background:var(--grey);position:relative;
+    display:flex;align-items:center;
+  }
+  .bar.blue{background:var(--blue);}
+  .bar.ink{background:var(--ink);}
+  .bar .val{
+    position:absolute;right:-92px;
+    font-family:'Archivo',sans-serif;font-weight:900;font-size:30px;
+    letter-spacing:-0.02em;color:var(--ink);
+  }
+  .bar.blue .val{color:var(--blue);}
+  .cost{
+    text-align:right;
+    font-family:'Space Mono',monospace;font-weight:700;font-size:20px;
+    letter-spacing:0.02em;
+  }
+  .cost .pill{
+    display:inline-block;padding:6px 12px;border:2px solid var(--grey);
+    color:var(--grey);text-transform:uppercase;font-size:16px;letter-spacing:0.08em;
+  }
+  .cost .pill.fast{border-color:var(--grey);color:var(--grey);}
+  .cost .pill.cheap{border-color:var(--blue);color:#fff;background:var(--blue);}
+  .cost .pill.slow{border-color:var(--ink);color:var(--ink);}
+
+  /* axis ticks under bars */
+  .axis{
+    position:absolute;left:520px;right:300px;bottom:-2px;top:34px;
+    pointer-events:none;
+  }
+  .axis .tick{
+    position:absolute;top:0;bottom:34px;width:1.5px;background:var(--lightgrey);
+  }
+  .axis .tick span{
+    position:absolute;bottom:-30px;left:-14px;
+    font-family:'Space Mono',monospace;font-size:15px;color:var(--grey);
+  }
+
+  /* callout strip */
+  .callouts{
+    position:absolute;left:72px;right:72px;bottom:120px;
+    display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;
+    border-top:6px solid var(--ink);
+  }
+  .callout{padding:22px 32px 0 0;}
+  .callout:not(:first-child){padding-left:32px;border-left:1.5px solid var(--lightgrey);}
+  .callout .cnum{
+    font-family:'Archivo',sans-serif;font-weight:900;font-size:52px;
+    letter-spacing:-0.03em;line-height:1;
+  }
+  .callout.hl .cnum{color:var(--blue);}
+  .callout .ctxt{
+    margin-top:10px;font-family:'Space Grotesk',sans-serif;font-weight:500;
+    font-size:21px;line-height:1.24;letter-spacing:-0.01em;color:var(--ink);
+  }
+  .callout .ctxt b{font-weight:700;}
+</style>
+
+<!-- ================= SLIDE 1 ================= -->
+<section class="slide">
+  <div class="topbar" style="position:absolute;left:72px;right:72px;top:72px;">
+    <div class="kicker">Retrieval Quality Study</div>
+    <div class="meta">Multi-tenant RFP retrieval · 13 experiments</div>
+  </div>
+
+  <div class="hero-title">
+    <h1>A retrieval<br>stack,<br><span class="accent">stress-tested</span></h1>
+    <div class="hero-sub">
+      Which parts of a phased RAG pipeline <b>really</b> earn their cost —
+      and <b>13 experiments</b> answering it. We deployed the Vespa RAG Blueprint,
+      built an adversarial benchmark, and found where it breaks.
+    </div>
+  </div>
+
+  <div class="statblock">
+    <div>
+      <div class="lab">The retrieval quality journey</div>
+    </div>
+    <div>
+      <div class="stat-from">
+        <div class="stat-row-lab">Blueprint baseline</div>
+        <div class="stat-num">0.453</div>
+      </div>
+      <div class="stat-arrow">↓</div>
+      <div class="stat-to">
+        <div class="stat-row-lab">Full stack</div>
+        <div class="stat-num">0.774</div>
+      </div>
+    </div>
+    <div class="stat-metric">
+      <div class="big">+0.321</div>
+      <div class="small">nDCG@10 · hard case</div>
+    </div>
+  </div>
+
+  <div class="tags">
+    <div class="tag">Vespa</div>
+    <div class="tag">Hybrid retrieval</div>
+    <div class="tag">Cross-encoder</div>
+    <div class="tag">ColBERT</div>
+    <div class="tag">Distillation</div>
+  </div>
+
+  <div class="footbar">
+    <span>Diagnose before you optimise</span>
+    <span><strong>01 / 06</strong></span>
+  </div>
+</section>
+
+<!-- ================= SLIDE 2 ================= -->
+<section class="slide">
+  <div class="topbar" style="position:absolute;left:72px;right:72px;top:72px;">
+    <div class="kicker">Results — Cost / Quality Frontier</div>
+    <div class="meta">Real paraphrase set · nDCG@10 · tenant-filtered</div>
+  </div>
+
+  <div class="r-head">
+    <h2>The climb: <span class="accent">0.377 → 0.774</span></h2>
+    <div class="desc">
+      Eight techniques on 940 near-identical compliance answers. The best quality
+      is cheap: <b>ColBERT hits 0.752 at ~60&nbsp;ms</b> and a
+      <b>distilled student holds 0.747 at ~7&nbsp;ms</b> — the ~2400&nbsp;ms
+      cross-encoder becomes retirable.
+    </div>
+  </div>
+
+  <div class="chart">
+    <div class="col-head">
+      <div class="c-name">Technique</div>
+      <div class="c-bar">nDCG@10  (axis 0 → 0.80)</div>
+      <div class="c-cost">Query cost</div>
+    </div>
+
+    <!-- rows: width % = val/0.80*100 -->
+    <div class="bar-row">
+      <div class="name"><span class="idx">01</span>Semantic — embed the answer</div>
+      <div class="track">
+        <div class="axis">
+          <div class="tick" style="left:25%"><span>0.20</span></div>
+          <div class="tick" style="left:50%"><span>0.40</span></div>
+          <div class="tick" style="left:75%"><span>0.60</span></div>
+          <div class="tick" style="left:100%"><span>0.80</span></div>
+        </div>
+        <div class="bar" style="width:47.1%"><span class="val">0.377</span></div>
+      </div>
+      <div class="cost"><span class="pill fast">Fast</span></div>
+    </div>
+
+    <div class="bar-row">
+      <div class="name"><span class="idx">02</span>Blueprint hybrid</div>
+      <div class="track">
+        <div class="bar" style="width:48.8%"><span class="val">0.390</span></div>
+      </div>
+      <div class="cost"><span class="pill fast">Fast</span></div>
+    </div>
+
+    <div class="bar-row">
+      <div class="name"><span class="idx">03</span>RRF fusion</div>
+      <div class="track">
+        <div class="bar" style="width:56.6%"><span class="val">0.453</span></div>
+      </div>
+      <div class="cost"><span class="pill fast">Fast</span></div>
+    </div>
+
+    <div class="bar-row">
+      <div class="name"><span class="idx">04</span>q2q library — embed the question</div>
+      <div class="track">
+        <div class="bar ink" style="width:81.0%"><span class="val">0.648</span></div>
+      </div>
+      <div class="cost"><span class="pill fast">Fast</span></div>
+    </div>
+
+    <div class="bar-row">
+      <div class="name"><span class="idx">05</span>Cross-encoder rerank</div>
+      <div class="track">
+        <div class="bar ink" style="width:89.6%"><span class="val">0.717</span></div>
+      </div>
+      <div class="cost"><span class="pill slow">~2400 ms</span></div>
+    </div>
+
+    <div class="bar-row">
+      <div class="name"><span class="idx">06</span>ColBERT late interaction</div>
+      <div class="track">
+        <div class="bar blue" style="width:94.0%"><span class="val">0.752</span></div>
+      </div>
+      <div class="cost"><span class="pill cheap">~60 ms</span></div>
+    </div>
+
+    <div class="bar-row">
+      <div class="name"><span class="idx">07</span>Library recall + cross-encoder</div>
+      <div class="track">
+        <div class="bar blue" style="width:96.8%"><span class="val">0.774</span></div>
+      </div>
+      <div class="cost"><span class="pill slow">~2400 ms</span></div>
+    </div>
+
+    <div class="bar-row">
+      <div class="name"><span class="idx">08</span>Distilled pairwise student</div>
+      <div class="track">
+        <div class="bar blue" style="width:93.4%"><span class="val">0.747</span></div>
+      </div>
+      <div class="cost"><span class="pill cheap">~7 ms</span></div>
+    </div>
+  </div>
+
+  <div class="callouts">
+    <div class="callout hl">
+      <div class="cnum">0.774</div>
+      <div class="ctxt"><b>Peak quality</b> from library recall fed into the cross-encoder — the top of the frontier.</div>
+    </div>
+    <div class="callout hl">
+      <div class="cnum">~60 ms</div>
+      <div class="ctxt"><b>ColBERT 0.752</b> — beats the cross-encoder at roughly 40× lower cost.</div>
+    </div>
+    <div class="callout hl">
+      <div class="cnum">~7 ms</div>
+      <div class="ctxt"><b>Distilled student 0.747</b>, deployed native — vs ~2400 ms for the teacher.</div>
+    </div>
+  </div>
+
+  <div class="footbar">
+    <span>The expensive cross-encoder is retirable</span>
+    <span><strong>06 / 06</strong></span>
+  </div>
+</section>

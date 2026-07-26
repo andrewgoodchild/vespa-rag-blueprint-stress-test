@@ -1,0 +1,1567 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vespa-rag-blueprint-stress-test — a retrieval stack, stress-tested</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#171512;
+    --bg2:#1e1b16;
+    --ink:#F3ECE0;          /* warm near-white */
+    --muted:#A69C8B;        /* warm muted */
+    --dim:#6E655A;          /* dimmest legible */
+    --line:#332E27;
+    --amber:#E8A13A;        /* signal accent */
+    --amber-dim:#8a6a3a;
+    --teal:#4FB8A8;         /* secondary series */
+    --teal-dim:#356b63;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:#0c0b09;height:100%}
+  body{display:flex;align-items:center;justify-content:center;min-height:100vh;overflow:hidden}
+
+  /* ---------- scaling stage ---------- */
+  #stage{width:1920px;height:1080px;position:relative;transform-origin:center center;flex:0 0 auto}
+  .slide{
+    position:absolute;inset:0;display:none;
+    width:1920px;height:1080px;overflow:hidden;
+    background:var(--bg);color:var(--ink);
+    font-family:'Space Grotesk',sans-serif;
+  }
+  .slide.active{display:block}
+  .mono{font-family:'JetBrains Mono',monospace}
+
+  /* progress bar (single, non-numeric nav indicator) */
+  #progress{position:fixed;left:0;bottom:0;height:3px;background:var(--amber);
+    width:12.5%;transition:width .18s ease;z-index:50;box-shadow:0 0 10px rgba(232,161,58,.5)}
+
+  /* ---------- shared chrome ---------- */
+  .topbar{
+    position:absolute;top:0;left:0;right:0;height:60px;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 72px;border-bottom:1px solid var(--line);
+    font-family:'JetBrains Mono',monospace;font-size:15px;
+    letter-spacing:.04em;color:var(--muted);
+  }
+  .topbar .dotgrp{display:flex;align-items:center;gap:10px}
+  .topbar .dot{width:9px;height:9px;border-radius:50%;background:var(--line)}
+  .topbar .dot.on{background:var(--amber)}
+  .topbar b{color:var(--ink);font-weight:600}
+  .pagenum{position:absolute;bottom:44px;right:72px;
+    font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--dim);letter-spacing:.08em}
+
+  /* ---------- generic content frame ---------- */
+  .pad{position:absolute;left:72px;right:72px;top:60px;bottom:0;padding-top:48px;
+    display:flex;flex-direction:column}
+  .kicker{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;
+    letter-spacing:.28em;color:var(--amber);margin-bottom:18px}
+  .h2{font-size:64px;font-weight:600;letter-spacing:-.02em;line-height:1}
+  .h2 .amb{color:var(--amber)}
+  .h2 .tl{color:var(--teal)}
+  .lede{font-family:'JetBrains Mono',monospace;font-size:20px;line-height:1.5;
+    color:var(--muted);max-width:1300px;margin-top:22px}
+  .lede b{color:var(--ink);font-weight:600}
+  .n{font-family:'JetBrains Mono',monospace;font-weight:600;font-feature-settings:"tnum"}
+
+  /* ---------- PAGE 1 : HERO ---------- */
+  .hero-inner{position:absolute;left:72px;right:72px;top:60px;bottom:0;
+    display:flex;flex-direction:column;justify-content:center}
+  .prompt{font-family:'JetBrains Mono',monospace;font-size:19px;color:var(--muted);
+    letter-spacing:.02em;margin-bottom:34px}
+  .prompt .cwd{color:var(--teal)}
+  .prompt .cmd{color:var(--ink)}
+  .prompt .caret{display:inline-block;width:11px;height:22px;background:var(--amber);
+    margin-left:6px;transform:translateY(4px)}
+  .overline{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:600;
+    letter-spacing:.34em;color:var(--amber);margin-bottom:24px}
+  .title{font-size:118px;line-height:.98;font-weight:600;letter-spacing:-.02em;
+    max-width:1380px}
+  .subtitle{font-family:'JetBrains Mono',monospace;font-size:26px;line-height:1.5;
+    color:var(--muted);max-width:1080px;margin-top:34px}
+  .subtitle b{color:var(--ink);font-weight:600}
+
+  .statwrap{margin-top:70px;display:flex;align-items:flex-end;gap:56px}
+  .statblock{display:flex;align-items:flex-end;gap:44px}
+  .figure{display:flex;flex-direction:column}
+  .figure .cap{font-family:'JetBrains Mono',monospace;font-size:16px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--dim);margin-bottom:12px}
+  .figure .num{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:132px;
+    line-height:.9;letter-spacing:-.03em;font-feature-settings:"tnum"}
+  .figure.from .num{color:var(--muted)}
+  .figure.to .num{color:var(--amber)}
+  .arrow{font-family:'JetBrains Mono',monospace;font-size:76px;color:var(--dim);
+    padding-bottom:14px;font-weight:400}
+  .metricmeta{display:flex;flex-direction:column;gap:10px;padding-bottom:16px;margin-left:8px}
+  .metricmeta .delta{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:34px;color:var(--teal)}
+  .metricmeta .metric{font-family:'JetBrains Mono',monospace;font-size:19px;color:var(--muted);letter-spacing:.02em}
+  .metricmeta .metric b{color:var(--ink)}
+
+  .tags{position:absolute;left:72px;bottom:44px;display:flex;gap:14px;align-items:center}
+  .tags .lead{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--dim);
+    letter-spacing:.12em;text-transform:uppercase;margin-right:6px}
+  .tag{font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--muted);
+    border:1px solid var(--line);border-radius:2px;padding:9px 16px;letter-spacing:.02em}
+
+  /* ---------- PAGE 2 : requirement → a stack ---------- */
+  .maprows{margin-top:34px;flex:1}
+  .mrow{display:grid;grid-template-columns:640px 44px 1fr;align-items:center;
+    height:74px;border-bottom:1px solid rgba(51,46,39,.6)}
+  .mrow .ad{font-family:'JetBrains Mono',monospace;font-size:19px;color:var(--amber);
+    letter-spacing:-.01em}
+  .mrow .ar{font-family:'JetBrains Mono',monospace;font-size:26px;color:var(--dim);text-align:center}
+  .mrow .st{font-size:22px;color:var(--ink);font-weight:500}
+  .mrow .st .sub{color:var(--muted);font-weight:400}
+  .philo{margin-top:26px;border-left:3px solid var(--teal);padding:6px 0 6px 26px}
+  .philo .pl{font-family:'JetBrains Mono',monospace;font-size:14px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--teal);margin-bottom:8px}
+  .philo .pq{font-size:26px;line-height:1.35;color:var(--ink);font-weight:500;font-style:italic}
+  .footnote{margin-top:22px;font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--dim);
+    letter-spacing:.04em}
+  .footnote b{color:var(--muted);font-weight:600}
+  /* keep the footnote clear of the 1080px edge (maprows flex:1 pushes it down) */
+  #s2 .pad{padding-bottom:46px}
+
+  /* ---------- PAGE 3 : hypothesis ---------- */
+  .tellgrid{margin-top:38px;flex:1;display:grid;grid-template-columns:1fr 1fr;
+    grid-template-rows:1fr 1fr;gap:26px}
+  .tell{border:1px solid var(--line);border-radius:4px;background:var(--bg2);
+    padding:30px 34px;display:flex;flex-direction:column;justify-content:center}
+  .tell .tg{font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--amber);margin-bottom:16px}
+  .tell .ad{font-family:'JetBrains Mono',monospace;font-size:25px;color:var(--ink);
+    font-weight:600;margin-bottom:14px;letter-spacing:-.01em}
+  .tell .bp{font-size:20px;line-height:1.4;color:var(--muted)}
+  .tell .bp b{color:var(--teal);font-weight:600}
+  .conclude{margin-top:28px;display:flex;align-items:baseline;gap:20px;
+    border-top:1px solid var(--line);padding-top:24px}
+  .conclude .lab{font-family:'JetBrains Mono',monospace;font-size:15px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--dim);white-space:nowrap}
+  .conclude .txt{font-size:26px;color:var(--ink);font-weight:500;line-height:1.3}
+  .conclude .txt b{color:var(--amber)}
+
+  /* ---------- PAGE 4 : harness ---------- */
+  .hgrid{margin-top:38px;flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;
+    grid-template-rows:1fr 1fr;gap:24px}
+  .hcard{border:1px solid var(--line);border-radius:4px;background:var(--bg2);
+    padding:26px 30px;display:flex;flex-direction:column}
+  .hcard .ht{font-family:'JetBrains Mono',monospace;font-size:14px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--amber);margin-bottom:18px;display:flex;
+    align-items:center;gap:12px}
+  .hcard .ht .ix{color:var(--dim)}
+  .hcard .hb{font-size:19px;line-height:1.5;color:var(--muted)}
+  .hcard .hb b{color:var(--ink);font-weight:600}
+  .hcard .hb .n{color:var(--teal)}
+  .hcard ul{list-style:none}
+  .hcard li{padding-left:18px;position:relative;margin-bottom:9px;font-size:18px;
+    line-height:1.4;color:var(--muted)}
+  .hcard li::before{content:"›";position:absolute;left:0;color:var(--dim)}
+  .hcard li b{color:var(--ink);font-weight:600}
+  .hcard li .n{color:var(--teal)}
+
+  /* ---------- PAGE 5 : 13 experiments ---------- */
+  .exwrap{margin-top:30px;flex:1;display:grid;grid-template-columns:1fr 1fr;gap:56px}
+  .excol .ch{font-family:'JetBrains Mono',monospace;font-size:15px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--teal);padding-bottom:12px;margin-bottom:6px;
+    border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
+  .excol .ch .cnt{color:var(--dim)}
+  .exp{display:grid;grid-template-columns:38px 1fr;gap:14px;padding:11px 0;
+    border-bottom:1px solid rgba(51,46,39,.5)}
+  .exp .ei{font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--dim);
+    text-align:right;font-weight:600;padding-top:2px}
+  .exp .et{font-size:18px;color:var(--ink);font-weight:600;line-height:1.25;letter-spacing:-.01em}
+  .exp .er{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--muted);
+    line-height:1.4;margin-top:4px}
+  .exp .er b{color:var(--ink)}
+  .exp .er .up{color:var(--teal)}
+  .exp .er .dn{color:var(--amber)}
+  .exp.pivot{border-left:2px solid var(--amber);margin-left:-16px;padding-left:14px}
+  .exp.pivot .ei{color:var(--amber)}
+  .exp.pivot .et{color:var(--amber)}
+  .exp.pivot .et::after{content:" ▸ pivot";font-family:'JetBrains Mono',monospace;
+    font-size:12px;letter-spacing:.14em;color:var(--dim);font-weight:600;text-transform:uppercase}
+
+  /* ---------- PAGE 6 : RESULTS ---------- */
+  .res{position:absolute;left:72px;right:72px;top:60px;bottom:0;padding-top:52px}
+  .res-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px}
+  .res-title{font-size:66px;font-weight:600;letter-spacing:-.02em;line-height:1}
+  .res-title .amb{color:var(--amber)}
+  .res-sub{font-family:'JetBrains Mono',monospace;font-size:18px;color:var(--muted);
+    letter-spacing:.04em;text-align:right;line-height:1.6}
+  .res-sub b{color:var(--ink)}
+  .legend{display:flex;gap:32px;align-items:center;margin:22px 0 12px;
+    font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--muted)}
+  .legend .sw{display:inline-block;width:26px;height:12px;border-radius:2px;margin-right:10px;vertical-align:middle}
+  .legend .sw.fast{background:var(--dim)}
+  .legend .sw.exp{background:var(--amber)}
+  .legend .sw.cheap{background:var(--teal)}
+  .chart{margin-top:8px}
+  .axis{position:relative;height:26px;margin-left:430px;margin-right:250px;border-bottom:1px solid var(--line)}
+  .axis .tick{position:absolute;bottom:0;transform:translateX(-50%);
+    font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--dim)}
+  .axis .tick::after{content:"";position:absolute;left:50%;bottom:-1px;width:1px;height:6px;background:var(--line)}
+  .row{display:flex;align-items:center;height:61px;border-bottom:1px solid rgba(51,46,39,.5)}
+  .row.hi{background:linear-gradient(90deg,rgba(232,161,58,.09),rgba(232,161,58,0) 70%)}
+  .row .label{width:430px;padding-right:28px;text-align:right;
+    font-family:'JetBrains Mono',monospace;font-size:20px;color:var(--ink);letter-spacing:-.01em}
+  .row .label .idx{color:var(--dim);font-size:15px;margin-right:12px}
+  .row.hi .label{color:var(--amber);font-weight:600}
+  .track{position:relative;flex:0 0 auto;width:calc(1776px - 430px - 250px);height:100%;display:flex;align-items:center}
+  .gridline{position:absolute;top:0;bottom:0;width:1px;background:rgba(51,46,39,.45)}
+  .bar{height:30px;border-radius:2px;position:relative;display:flex;align-items:center}
+  .bar.fast{background:linear-gradient(90deg,#3a352c,#524a3d)}
+  .bar.exp{background:linear-gradient(90deg,var(--amber-dim),var(--amber))}
+  .bar.cheap{background:linear-gradient(90deg,var(--teal-dim),var(--teal))}
+  .bar .val{position:absolute;right:-92px;font-family:'JetBrains Mono',monospace;
+    font-weight:700;font-size:26px;color:var(--ink);font-feature-settings:"tnum"}
+  .bar.exp .val,.row.hi .bar .val{color:var(--amber)}
+  .bar.cheap .val{color:var(--teal)}
+  .cost{width:250px;padding-left:118px;
+    font-family:'JetBrains Mono',monospace;font-size:19px;color:var(--muted);white-space:nowrap}
+  .cost .exp{color:var(--amber)}
+  .cost .cheap{color:var(--teal)}
+  .cost .fast{color:var(--dim)}
+  .takeaway{position:absolute;left:0;right:0;bottom:70px;display:flex;gap:0;
+    border-top:1px solid var(--line);padding-top:26px}
+  .ta{flex:1;padding-right:52px}
+  .ta + .ta{border-left:1px solid var(--line);padding-left:52px}
+  .ta .k{font-family:'JetBrains Mono',monospace;font-size:15px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--amber);margin-bottom:12px}
+  .ta .k.teal{color:var(--teal)}
+  .ta .v{font-size:23px;line-height:1.4;color:var(--muted)}
+  .ta .v b{color:var(--ink);font-weight:600}
+  .ta .v .n{font-family:'JetBrains Mono',monospace;font-weight:600}
+
+  /* ---------- PAGE 7 : through-lines ---------- */
+  .findings{margin-top:34px;flex:1;display:flex;flex-direction:column;justify-content:space-between;
+    padding-bottom:70px}
+  .find{display:grid;grid-template-columns:88px 1fr;gap:26px;align-items:baseline;
+    padding:20px 0;border-top:1px solid var(--line)}
+  .find:first-child{border-top:none}
+  .find .fn{font-family:'JetBrains Mono',monospace;font-size:38px;font-weight:700;
+    color:var(--amber);line-height:1;font-feature-settings:"tnum"}
+  .find .ft{font-size:29px;font-weight:600;color:var(--ink);letter-spacing:-.01em;margin-bottom:8px;line-height:1.15}
+  .find .fb{font-size:20px;line-height:1.45;color:var(--muted)}
+  .find .fb b{color:var(--ink);font-weight:600}
+  .find .fb .n{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--teal)}
+
+  /* ---------- PAGE 8 : final thoughts ---------- */
+  .ftcols{margin-top:36px;display:grid;grid-template-columns:1fr 1fr;gap:0}
+  .ftcol{padding:4px 44px}
+  .ftcol:first-child{padding-left:0}
+  .ftcol + .ftcol{border-left:1px solid var(--line)}
+  .ftcol .fk{font-family:'JetBrains Mono',monospace;font-size:15px;letter-spacing:.16em;
+    text-transform:uppercase;margin-bottom:16px}
+  .ftcol.done .fk{color:var(--teal)}
+  .ftcol.next .fk{color:var(--amber)}
+  .ftcol .fv{font-size:22px;line-height:1.45;color:var(--muted)}
+  .ftcol .fv b{color:var(--ink);font-weight:600}
+  .limit{margin-top:34px;border:1px solid var(--line);border-radius:4px;background:var(--bg2);
+    padding:26px 32px}
+  .limit .lk{font-family:'JetBrains Mono',monospace;font-size:14px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--amber);margin-bottom:12px}
+  .limit .lv{font-size:21px;line-height:1.45;color:var(--muted)}
+  .limit .lv b{color:var(--ink);font-weight:600}
+  .closer{position:absolute;left:72px;right:72px;bottom:96px;border-top:1px solid var(--line);
+    padding-top:30px}
+  .closer .cq{font-size:44px;line-height:1.2;font-weight:600;letter-spacing:-.02em;color:var(--ink);max-width:1500px}
+  .closer .cq .amb{color:var(--amber)}
+
+  /* ===== merged from the teaching deck ===== */
+/* ---------- CONCEPT-SLIDE TEMPLATE (slides 2–8) ---------- */
+  .concept{margin-top:30px;flex:1;display:flex;flex-direction:column;justify-content:flex-start}
+  .crow{display:grid;grid-template-columns:238px 1fr;gap:40px;align-items:baseline;
+    padding:22px 0;border-top:1px solid var(--line)}
+  .crow:first-child{border-top:none}
+  .crow .cl{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--teal);line-height:1.3}
+  .crow .cb{font-size:23px;line-height:1.42;color:var(--muted)}
+  .crow .cb b{color:var(--ink);font-weight:600}
+  .crow .cb .n{color:var(--teal)}
+  .saw{margin-top:20px;display:grid;grid-template-columns:238px 1fr;gap:40px;align-items:baseline;
+    border:1px solid var(--amber-dim);border-left:4px solid var(--amber);border-radius:4px;
+    background:var(--bg2);padding:26px 34px}
+  .saw .cl{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--amber);line-height:1.3}
+  .saw .cb{font-size:24px;line-height:1.42;color:var(--ink)}
+  .saw .cb b{color:var(--ink);font-weight:600}
+  .saw .cb .n{color:var(--amber)}
+  .saw .cb i{color:var(--muted);font-style:italic}
+
+/* ---------- PAGE 3 : what Vespa is ---------- */
+  .vs{margin-top:28px;flex:1;display:flex;flex-direction:column}
+  .vsh{display:grid;grid-template-columns:270px 1fr 1fr;gap:36px;padding-bottom:11px;
+    border-bottom:1px solid var(--line);
+    font-family:'JetBrains Mono',monospace;font-size:14px;letter-spacing:.16em;text-transform:uppercase}
+  .vsh .a{color:var(--dim)}
+  .vsh .b{color:var(--amber)}
+  .vsh .a span{text-transform:none;letter-spacing:.02em}
+  .vsr{display:grid;grid-template-columns:270px 1fr 1fr;gap:36px;align-items:baseline;
+    padding:15px 0;border-bottom:1px solid rgba(51,46,39,.55)}
+  .vsr .vsk{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:600;
+    color:var(--teal);letter-spacing:-.01em;line-height:1.3}
+  .vsr .vsa{font-size:18px;line-height:1.4;color:var(--dim)}
+  .vsr .vsb{font-size:18px;line-height:1.4;color:var(--muted)}
+  .vsr .vsb b{color:var(--ink);font-weight:600}
+  .vsr .vsb code,.vsr .vsa code{font-family:'JetBrains Mono',monospace;font-size:15px;
+    color:var(--amber);letter-spacing:-.01em}
+  /* reserve the bottom edge so the footnote clears 1080px and the pagenum sits clear */
+  #s3 .pad{padding-bottom:78px}
+  #s4 .pad{padding-bottom:74px}
+  #s5 .pad{padding-bottom:40px}
+  #s3 .saw{margin-top:auto}
+  #s3 .footnote{margin-top:18px}
+
+/* ---------- GLOSSARY (slides 17-18) ---------- */
+  .gloss{margin-top:34px;display:grid;grid-template-columns:1fr 1fr;gap:22px 64px}
+  .gterm{display:grid;grid-template-columns:1fr;gap:5px;padding:14px 0;border-top:1px solid var(--line)}
+  .gterm .gt{font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:600;color:var(--amber);letter-spacing:.01em}
+  .gterm .gt .tl{color:var(--teal)}
+  .gterm .gdf{font-size:18px;line-height:1.4;color:var(--muted)}
+  .gterm .gdf b{color:var(--ink);font-weight:600}
+
+  .groups{margin-top:52px;display:grid;grid-template-columns:1fr 1fr;gap:0 72px}
+  .grp{display:grid;grid-template-columns:54px 1fr;gap:22px;align-items:baseline;
+    padding:18px 0;border-top:1px solid var(--line)}
+  .grp .gn{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;
+    color:var(--amber);line-height:1;font-feature-settings:"tnum"}
+  .grp .gl{font-size:25px;font-weight:600;color:var(--ink);letter-spacing:-.01em;line-height:1.1}
+  .grp .gd{font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--muted);
+    margin-top:7px;line-height:1.4}
+
+</style>
+</head>
+<body>
+<div id="stage">
+
+<section class="slide" id="s1">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>IR retrieval lab</b></div>
+      <div class="dotgrp">
+        <span>multi-tenant RFP retrieval · fictional test case</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot"></span>
+      </div>
+    </div>
+
+    <div class="hero-inner">
+      <div class="prompt"><span class="cwd">~/vespa-rag-blueprint-stress-test</span> <span style="color:var(--dim)">$</span> <span class="cmd">./evaluate --case hard --metric ndcg@10</span><span class="caret"></span></div>
+
+      <div class="overline">ARCHITECTURE STRESS-TEST · THE CONCEPTS AND THE EVIDENCE</div>
+      <h1 class="title">A retrieval stack,<br>stress-tested</h1>
+      <p class="subtitle">Which parts of a <b>phased RAG pipeline</b> actually earn their cost. Every technique explained, then measured: we deployed the Vespa RAG Blueprint, built an adversarial benchmark, and ran <b>13 experiments</b> to find where it breaks.</p>
+
+      <div class="statwrap">
+        <div class="statblock">
+          <div class="figure from">
+            <span class="cap">baseline · semantic</span>
+            <span class="num">0.505</span>
+          </div>
+          <div class="arrow">→</div>
+          <div class="figure to">
+            <span class="cap">library model</span>
+            <span class="num">0.635</span>
+          </div>
+        </div>
+        <div class="metricmeta">
+          <span class="delta">+26%</span>
+          <span class="metric"><b>nDCG@10</b> on the hard case</span>
+          <span class="metric">940 questionnaire answers</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tags">
+      <span class="lead">stack</span>
+      <span class="tag">Vespa</span>
+      <span class="tag">hybrid retrieval</span>
+      <span class="tag">cross-encoder</span>
+      <span class="tag">ColBERT</span>
+      <span class="tag">distillation</span>
+    </div>
+    <div class="pagenum">01 / 27</div>
+  </section>
+
+  <section class="slide" id="s2">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>what's in here</b></div>
+      <div class="dotgrp">
+        <span>27 slides · concepts, evidence, reference</span>
+        <span class="dot on"></span><span class="dot"></span><span class="dot"></span>
+      </div>
+    </div>
+    <div class="pad">
+      <div class="kicker">THE MAP</div>
+      <h2 class="h2">What's <span class="amb">in here</span></h2>
+      <p class="lede">Each technique gets one slide: <b>what it is · how it works · the tradeoff · what we measured</b>. The evidence sections then put every arm on one axis and say which held up.</p>
+      <div class="groups" style="margin-top:44px">
+        <div class="grp">
+          <div class="gn">03</div>
+          <div><div class="gl">The engine and the blueprint</div><div class="gd">what Vespa does that a vector index can't · what the blueprint ships by default · the harness we built to break it</div></div>
+        </div>
+        <div class="grp">
+          <div class="gn">14</div>
+          <div><div class="gl">Representation</div><div class="gd">bi-encoders &amp; contrastive fine-tuning · quantization</div></div>
+        </div>
+        <div class="grp">
+          <div class="gn">06</div>
+          <div><div class="gl">Ways to match</div><div class="gd">RAG · lexical vs semantic · hybrid fusion (RRF) · chunking</div></div>
+        </div>
+        <div class="grp">
+          <div class="gn">17</div>
+          <div><div class="gl">RFP-specific</div><div class="gd">the library model — the winner · the "boring" structural wins</div></div>
+        </div>
+        <div class="grp">
+          <div class="gn">10</div>
+          <div><div class="gl">Ways to rank</div><div class="gd">phased ranking · learning-to-rank · cross-encoders · late interaction · distillation</div></div>
+        </div>
+        <div class="grp">
+          <div class="gn">19</div>
+          <div><div class="gl">What we learned</div><div class="gd">generation · measurement rigour · 13 runs · the cost/quality frontier · through-lines · limits</div></div>
+        </div>
+      </div>
+      <div class="footnote" style="margin-top:auto;padding-bottom:40px"><b>Reference:</b> a three-page glossary at the back — 36 terms, every piece of vocabulary this deck uses.</div>
+    </div>
+    <div class="pagenum">02 / 27</div>
+  </section>
+
+<section class="slide" id="s3">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>the engine</b></div>
+      <div class="dotgrp">
+        <span>matching · ranking · inference in one process</span>
+        <span class="dot on"></span><span class="dot"></span><span class="dot"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">THE ENGINE · WHAT VESPA IS</div>
+      <h2 class="h2">Not a vector database — <span class="amb">a ranking engine</span></h2>
+      <p class="lede">Most RAG stacks are a vector index plus application code. Vespa is a search engine where a document holds <b>tensors</b>, and ranking is an <b>expression the engine evaluates next to the data</b>. The difference shows up the moment one document needs more than one vector.</p>
+
+      <div class="vs">
+        <div class="vsh">
+          <div></div>
+          <div class="a">vector index + app code <span>(e.g. pgvector)</span></div>
+          <div class="b">vespa</div>
+        </div>
+
+        <div class="vsr">
+          <div class="vsk">vectors per document</div>
+          <div class="vsa">One vector per column. A 40-chunk document becomes 40 rows, regrouped in application code.</div>
+          <div class="vsb"><code>tensor&lt;int8&gt;(chunk{}, x[96])</code> — every chunk vector lives <b>inside the document</b>, and rank expressions reduce over them.</div>
+        </div>
+
+        <div class="vsr">
+          <div class="vsk">lexical + semantic</div>
+          <div class="vsa">Vector index only. BM25 comes from Postgres full-text search or a separate extension; the two are fused in app code.</div>
+          <div class="vsb">BM25 and ANN in <b>one query</b>, fused in the rank profile — <code>userInput()</code> <b>or</b> <code>nearestNeighbor()</code>.</div>
+        </div>
+
+        <div class="vsr">
+          <div class="vsk">reranking</div>
+          <div class="vsa">Candidates cross the network first; the application reranks what it got back.</div>
+          <div class="vsb"><b>Phased ranking</b> in-engine — cheap scoring over everything, then an expensive model over only the survivors.</div>
+        </div>
+
+        <div class="vsr">
+          <div class="vsk">model inference</div>
+          <div class="vsa">None. Embeddings are produced outside the database and inserted.</div>
+          <div class="vsb">ONNX models run <b>in the engine</b>: embedder, cross-encoder, ColBERT, LightGBM. This study ran <b>three at once</b> on an 8&nbsp;GB laptop.</div>
+        </div>
+
+        <div class="vsr">
+          <div class="vsk">filtering</div>
+          <div class="vsa">With approximate indexes the filter is applied <i>after</i> the index scan; iterative scans exist to claw the recall back.</div>
+          <div class="vsb">Attributes filter <b>during</b> matching, so a tenant filter is a matching constraint rather than a ranking preference.</div>
+        </div>
+      </div>
+
+      <div class="saw">
+        <div class="cl">why it matters here</div>
+        <div class="cb">Late interaction, per-chunk scoring and top-<i>k</i> chunk selection are not features you wait for — they are <b>rank expressions you write</b>. Every technique in this deck is a change to a text file, not a new service.</div>
+      </div>
+
+      <div class="footnote"><b>pgvector as the reference point</b>&nbsp;&nbsp;·&nbsp;&nbsp;it is the common default, and the comparison is about what one engine does in one query — not product quality</div>
+    </div>
+    <div class="pagenum">03 / 27</div>
+  </section>
+
+<section class="slide" id="s4">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>the blueprint</b></div>
+      <div class="dotgrp">
+        <span>vespa-engine/sample-apps · rag-blueprint</span>
+        <span class="dot on"></span><span class="dot"></span><span class="dot"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">THE STARTING POINT</div>
+      <h2 class="h2">The Vespa <span class="tl">RAG Blueprint</span></h2>
+      <p class="lede">Vespa's reference application for RAG — a complete, opinionated stack meant to be deployed as-is. Everything below is a <b>default</b>: what you get before writing a line of your own.</p>
+
+      <div class="hgrid">
+        <div class="hcard">
+          <div class="ht"><span class="ix">01</span>schema &amp; chunking</div>
+          <ul>
+            <li>Documents are chunked <b>in the schema</b> — <span class="n">fixed-length 1024</span></li>
+            <li>Produces a BM25-indexed <b>chunks</b> array <i>and</i> a per-chunk embedding tensor</li>
+            <li>No external chunking service, no second store to keep in sync</li>
+          </ul>
+        </div>
+        <div class="hcard">
+          <div class="ht"><span class="ix">02</span>embeddings</div>
+          <ul>
+            <li>A <b>ModernBERT</b> embedder runs in-engine, at index <i>and</i> query time</li>
+            <li>Packed to <b>1 bit</b> per dimension (<span class="n">int8</span>, hamming distance)</li>
+            <li>A float query vector is kept for <b>cosine rescoring</b></li>
+          </ul>
+        </div>
+        <div class="hcard">
+          <div class="ht"><span class="ix">03</span>retrieval</div>
+          <ul>
+            <li>One query, three retrievers: lexical <b>or</b> ANN on the title vector <b>or</b> ANN on the chunk vectors</li>
+            <li><span class="n">targetHits:100</span> per neighbour search</li>
+            <li>Shipped as <b>query profiles</b> — hybrid · rag · deepresearch</li>
+          </ul>
+        </div>
+        <div class="hcard">
+          <div class="ht"><span class="ix">04</span>ranking</div>
+          <ul>
+            <li><b>First phase:</b> a learned linear model over <span class="n">7</span> features</li>
+            <li>Its weights ship as constants <b>in the query profile</b></li>
+            <li><b>Second phase:</b> an optional <b>LightGBM</b> GBDT over richer features</li>
+          </ul>
+        </div>
+        <div class="hcard">
+          <div class="ht"><span class="ix">05</span>chunk selection</div>
+          <ul>
+            <li><span class="n">top(3, chunk_sim_scores)</span> — a tensor expression, not app code</li>
+            <li>Picks which <b>paragraphs</b> reach the LLM, not just which documents</li>
+            <li>Delivered by the summary via <b>select-elements-by</b></li>
+          </ul>
+        </div>
+        <div class="hcard">
+          <div class="ht"><span class="ix">06</span>generation</div>
+          <ul>
+            <li>The <b>rag</b> profile chains an LLM client onto the same query</li>
+            <li>Tokens stream back over <b>SSE</b></li>
+            <li>Retrieval and generation are <b>one deployment</b></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="conclude">
+        <div class="lab">not included</div>
+        <div class="txt">No tenant concept, no cross-encoder, no late interaction — <b>those are this study's additions</b>.</div>
+      </div>
+    </div>
+    <div class="pagenum">04 / 27</div>
+  </section>
+
+<section class="slide" id="s5">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>the test harness we built</b></div>
+      <div class="dotgrp">
+        <span>local Vespa · Docker · M1 8GB · 3 ONNX models</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">THE TEST HARNESS</div>
+      <h2 class="h2">What we built to <span class="amb">measure</span> it</h2>
+
+      <div class="hgrid">
+        <div class="hcard">
+          <div class="ht"><span class="ix">01</span>two corpora</div>
+          <ul>
+            <li><b>Adversarial set:</b> <span class="n">39</span> LLM-written docs, <span class="n">3</span> tenants, one cluster per failure mode</li>
+            <li><b>Questionnaire corpus:</b> <span class="n">940</span> answers to a <span class="n">261</span>-question security questionnaire</li>
+            <li><span class="n">4</span> fictional vendors · our taxonomy · all committed</li>
+          </ul>
+        </div>
+        <div class="hcard">
+          <div class="ht"><span class="ix">02</span>query sets</div>
+          <ul>
+            <li><b>Synthetic:</b> <span class="n">20→80</span> adversarial queries across <span class="n">11</span> failure-mode clusters</li>
+            <li><b>Real:</b> <span class="n">234</span> verbatim + <span class="n">47</span> paraphrase queries</li>
+          </ul>
+        </div>
+        <div class="hcard">
+          <div class="ht"><span class="ix">03</span>graded qrels</div>
+          <ul>
+            <li>TREC-style relevance grades <b>(0 / 1 / 2)</b></li>
+            <li>Including <b>paragraph-level</b> judgments, not just doc-level</li>
+          </ul>
+        </div>
+        <div class="hcard">
+          <div class="ht"><span class="ix">04</span>evaluate.py</div>
+          <ul>
+            <li><b>nDCG@10</b> · Recall@10 · MRR@10 · per-cluster</li>
+            <li><b>Cross-tenant leakage</b> accounting</li>
+            <li><b>Unanswerable-query</b> handling</li>
+          </ul>
+        </div>
+        <div class="hcard">
+          <div class="ht"><span class="ix">05</span>statistical rigour</div>
+          <ul>
+            <li><b>Paired bootstrap</b> significance testing</li>
+            <li><b>Grouped 5-fold</b> cross-validation</li>
+            <li>So a win has to survive resampling to count</li>
+          </ul>
+        </div>
+        <div class="hcard">
+          <div class="ht"><span class="ix">06</span>runtime</div>
+          <ul>
+            <li>Local <b>Vespa in Docker</b> — M1, 8GB</li>
+            <li><span class="n">3</span> <b>ONNX models</b> resident simultaneously</li>
+            <li>Everything reproducible on a laptop</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="philo">
+        <div class="pl">the operating philosophy</div>
+        <div class="pq">"Diagnose before you optimise, ship incrementally, don't fool yourself with noisy results."</div>
+      </div>
+    </div>
+    <div class="pagenum">05 / 27</div>
+  </section>
+
+<section class="slide" id="s6">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>the problem</b></div>
+      <div class="dotgrp">
+        <span>retrieval is the whole game</span>
+        <span class="dot on"></span><span class="dot"></span><span class="dot"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">THE PROBLEM</div>
+      <h2 class="h2">RAG — <span class="tl">retrieval</span> is the whole game</h2>
+
+      <div class="concept">
+        <div class="crow">
+          <div class="cl">What it is</div>
+          <div class="cb">Retrieval-Augmented Generation: find the relevant passages, then let an LLM write the answer <b>from them</b>.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">How it works</div>
+          <div class="cb">Two stages — a <b>retriever</b> pulls the top-k passages; a <b>generator</b> conditions on them. The generator can only be as right as what it's handed.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">The tradeoff</div>
+          <div class="cb">All the leverage is <b>upstream</b>. A perfect generator over bad retrieval still answers wrong; a modest generator over good retrieval is fine.</div>
+        </div>
+        <div class="saw">
+          <div class="cl">What we saw</div>
+          <div class="cb">The generator was flawless — faithfulness <span class="n">1.00</span>, zero hallucination, declined <span class="n">8/8</span> unanswerables — yet correctness (~<span class="n">0.50</span>) was capped <b>entirely by retrieval recall.</b> The study's core premise, confirmed: <i>get retrieval wrong and every answer downstream is wrong too.</i></div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">06 / 27</div>
+  </section>
+
+<section class="slide" id="s7">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>ways to match</b></div>
+      <div class="dotgrp">
+        <span>lexical vs semantic</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">WAYS TO MATCH</div>
+      <h2 class="h2">Two ways to match: <span class="amb">lexical</span> vs <span class="tl">semantic</span></h2>
+
+      <div class="concept">
+        <div class="crow">
+          <div class="cl">What it is</div>
+          <div class="cb">The core dichotomy. <b>Lexical</b> matches words; <b>semantic</b> matches meaning.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">How it works</div>
+          <div class="cb"><b>BM25</b> scores by term overlap weighted by rarity — rare shared words count more. <b>Dense</b> embeds query and doc into vectors; similarity is cosine.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">The tradeoff</div>
+          <div class="cb">BM25 nails exact terms, acronyms and rare tokens but dies on vocabulary mismatch. Semantic bridges wording but blurs fine distinctions and collapses when many docs are near-identical.</div>
+        </div>
+        <div class="saw">
+          <div class="cl">What we saw</div>
+          <div class="cb">Query <b>style</b> flipped the winner. Verbatim questionnaire re-runs: BM25 <span class="n">0.957</span>, semantic <span class="n">0.915</span>. Reworded questions: BM25 collapses to <span class="n">0.279</span>, semantic wins. <b>Neither alone is enough.</b></div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">07 / 27</div>
+  </section>
+
+<section class="slide" id="s8">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>ways to match</b></div>
+      <div class="dotgrp">
+        <span>hybrid fusion</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">WAYS TO MATCH</div>
+      <h2 class="h2">Hybrid retrieval &amp; <span class="tl">fusion (RRF)</span></h2>
+
+      <div class="concept">
+        <div class="crow">
+          <div class="cl">What it is</div>
+          <div class="cb">Combine lexical + semantic so each covers the other's <b>blind spot</b>.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">How it works</div>
+          <div class="cb">Run both, then merge. <b>Reciprocal Rank Fusion</b> adds <span class="n">1/(k+rank)</span> from each list — rank-based, so it needs no score calibration and no training.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">The tradeoff</div>
+          <div class="cb">Robust and free — no tuning — but <b>untuned</b>. A trained combiner can beat it if you have labels, and it can't fix a signal that's simply absent.</div>
+        </div>
+        <div class="saw">
+          <div class="cl">What we saw</div>
+          <div class="cb">On reworded questions, untrained RRF (<span class="n">0.489</span>) beat the blueprint's trained linear ranker (<span class="n">0.436</span>). <b>Structure beat a learned model</b> — a recurring theme.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">08 / 27</div>
+  </section>
+
+<section class="slide" id="s9">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>representation</b></div>
+      <div class="dotgrp">
+        <span>how you cut documents</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">REPRESENTATION</div>
+      <h2 class="h2">Chunking: how you <span class="amb">cut documents</span></h2>
+
+      <div class="concept">
+        <div class="crow">
+          <div class="cl">What it is</div>
+          <div class="cb">Documents are split into passages before embedding and indexing.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">How it works</div>
+          <div class="cb"><b>Fixed-size</b> (e.g. every <span class="n">1024</span> chars) is simple; <b>semantic / paragraph-aware</b> splits on natural boundaries.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">The tradeoff</div>
+          <div class="cb">Big chunks keep context but blur what they're "about" — a chunk about five things matches everything (a cosine attractor). Small chunks are precise but can sever an answer mid-thought.</div>
+        </div>
+        <div class="saw">
+          <div class="cl">What we saw</div>
+          <div class="cb">Fixed-<span class="n">1024</span> split a password policy mid-sentence and let a generic intro chunk win context slots. Paragraph chunking fixed both — <b>invisible to doc-level metrics, decisive at the chunk level.</b> You only see it if you judge chunks, not docs.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">09 / 27</div>
+  </section>
+
+<section class="slide" id="s10">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>ways to rank</b></div>
+      <div class="dotgrp">
+        <span>the compute funnel</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">WAYS TO RANK</div>
+      <h2 class="h2">Phased ranking: the <span class="amb">compute funnel</span></h2>
+
+      <div class="concept">
+        <div class="crow">
+          <div class="cl">What it is</div>
+          <div class="cb">Rank in stages, cheap-to-expensive, each stage re-ranking <b>fewer</b> docs.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">How it works</div>
+          <div class="cb"><b>first-phase</b> (cheap, all candidates) → <b>second-phase</b> (costlier, top-N) → <b>global-phase</b> (most expensive, top-few). Vespa names these literally.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">The tradeoff</div>
+          <div class="cb">Lets you afford an expensive model by running it only on a shortlist — but the shortlist is only as good as the <b>cheap stage's recall</b>. A weak first phase forces a wide, expensive rerank window.</div>
+        </div>
+        <div class="saw">
+          <div class="cl">What we saw</div>
+          <div class="cb">Recall@10 runs <span class="n">0.43–0.69</span> on paraphrases — on a third or more of queries the gold answer <b>never reaches the top-10 at all</b>, and no reranker can save what was never retrieved. First-phase recall is a real constraint here.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">10 / 27</div>
+  </section>
+
+<section class="slide" id="s11">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>ways to rank</b></div>
+      <div class="dotgrp">
+        <span>pointwise vs pairwise</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">WAYS TO RANK</div>
+      <h2 class="h2">Learning to rank: the <span class="tl">objective</span> matters</h2>
+
+      <div class="concept">
+        <div class="crow">
+          <div class="cl">What it is</div>
+          <div class="cb">Train a model to <b>order</b> results, over cheap features (BM25, similarities…).</div>
+        </div>
+        <div class="crow">
+          <div class="cl">How it works</div>
+          <div class="cb"><b>Pointwise</b> predicts each doc's relevance score independently. <b>Pairwise</b> learns which of two docs should rank higher (RankNet-style). <b>Listwise</b> optimizes the whole ordering.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">The tradeoff</div>
+          <div class="cb">Pointwise is simple but optimizes the wrong thing — absolute scores, not order — so it can rank worse than its own best feature. Pairwise matches the task (ordering) and needs graded pairs.</div>
+        </div>
+        <div class="saw">
+          <div class="cl">What we saw</div>
+          <div class="cb">On the small corpus, pointwise <b>lost</b> (<span class="n">0.902</span> vs zero-shot <span class="n">0.950</span>) and pairwise <b>won</b> (<span class="n">0.956</span>). In distillation it <b>reversed</b> — pointwise <span class="n">0.604</span>, pairwise <span class="n">0.553</span>. That comparison confounds objective with model class, so the objective matters <i>less</i> than "confirmed 3×" implied.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">11 / 27</div>
+  </section>
+
+<section class="slide" id="s12">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>ways to rank</b></div>
+      <div class="dotgrp">
+        <span>the accurate, expensive reranker</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">WAYS TO RANK</div>
+      <h2 class="h2">Cross-encoders: <span class="amb">accurate</span>, expensive</h2>
+
+      <div class="concept">
+        <div class="crow">
+          <div class="cl">What it is</div>
+          <div class="cb">A transformer that reads query and document <b>together</b> and outputs a relevance score.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">How it works</div>
+          <div class="cb">Concatenate <span class="mono">[query, doc]</span>, run <b>one full transformer pass</b>, read the score. Joint attention sees exact interactions a vector dot-product can't.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">The tradeoff</div>
+          <div class="cb">The most accurate reranker available — but you pay a full model forward pass <b>per (query, doc) pair</b>, at query time. Latency scales with how many you rerank.</div>
+        </div>
+        <div class="saw">
+          <div class="cl">What we saw</div>
+          <div class="cb">Lifted the hard case <span class="n">0.505 → 0.576</span> at <span class="n">~2.5 s</span>/query on CPU — a real gain, but beaten outright by the library model (<span class="n">0.635</span>), which costs nothing. The <b>"expensive cross-encoder"</b> stage: justified, but costly.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">12 / 27</div>
+  </section>
+
+<section class="slide" id="s13">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>late interaction</b></div>
+      <div class="dotgrp">
+        <span>ways to rank</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">WAYS TO RANK</div>
+      <h2 class="h2">Late interaction (<span class="tl">ColBERT</span>): the sweet spot</h2>
+
+      <div class="concept">
+        <div class="crow">
+          <div class="cl">What it is</div>
+          <div class="cb">Keep a separate embedding for <b>every token</b> in a document, and match at the token level — not one vector per doc, but a whole matrix. <b>ColBERT</b> is the model that popularised this; the name now stands for the technique too.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">How it works</div>
+          <div class="cb"><b>MaxSim</b> — for each query token, take its best-matching doc token, then sum. The doc token vectors are precomputed at <b>index time</b>, so query time is a cheap tensor op — no transformer pass per document.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">The tradeoff</div>
+          <div class="cb">Near cross-encoder quality at bi-encoder speed — but it stores many vectors per doc (a token matrix), so the index is larger and feeds are heavier.</div>
+        </div>
+        <div class="crow saw">
+          <div class="cl">What we saw</div>
+          <div class="cb"><span class="n">0.517</span> nDCG@10 at <span class="n">~60 ms</span>/query — between fusion and the cross-encoder for <span class="n">1/40th</span> the cost. The cost simply moved to indexing (a third model, slower feeds). Often the right answer to "the reranker is too expensive."</div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">13 / 27</div>
+  </section>
+
+<section class="slide" id="s14">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>knowledge distillation</b></div>
+      <div class="dotgrp">
+        <span>ways to rank</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">WAYS TO RANK</div>
+      <h2 class="h2">Distillation: <span class="amb">pay once</span>, serve cheap</h2>
+
+      <div class="concept">
+        <div class="crow">
+          <div class="cl">What it is</div>
+          <div class="cb">Train a cheap <b>student</b> to imitate an expensive <b>teacher</b> — capture the big model's judgment in a small, fast one.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">How it works</div>
+          <div class="cb">Run the teacher (a cross-encoder) <b>offline</b> to label (query, doc) pairs; train a fast student — a linear/GBDT over features, or a small bi-encoder — to reproduce its ranking. The teacher never runs at query time.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">The tradeoff</div>
+          <div class="cb">Most of the teacher's quality at a fraction of the serving cost — but the student is capped by its features, and (again) the training objective matters.</div>
+        </div>
+        <div class="crow saw">
+          <div class="cl">What we saw</div>
+          <div class="cb">The distilled student <b>beat its teacher</b> — <span class="n">0.604</span> vs <span class="n">0.561</span> — at microsecond cost, and the deployed linear variant serves in <span class="n">~8 ms</span> vs <span class="n">~2500 ms</span> (<span class="n">~300×</span> less ranking compute). The expensive reranker becomes an offline teacher, not a serving component.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">14 / 27</div>
+  </section>
+
+<section class="slide" id="s15">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>representation learning</b></div>
+      <div class="dotgrp">
+        <span>representation</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">REPRESENTATION</div>
+      <h2 class="h2">Bi-encoders &amp; <span class="tl">contrastive fine-tuning</span></h2>
+
+      <div class="concept">
+        <div class="crow">
+          <div class="cl">What it is</div>
+          <div class="cb">The embedding model itself — and the act of <b>teaching it your domain</b> rather than taking it off the shelf.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">How it works</div>
+          <div class="cb">A <b>bi-encoder</b> embeds query and doc separately (fast, cacheable). Contrastive fine-tuning pulls matching pairs together and pushes mismatches apart; <b>MultipleNegativesRankingLoss</b> uses the other items in the batch as free negatives.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">The tradeoff</div>
+          <div class="cb">Fine-tuning attacks the retrieval ceiling directly — the highest-leverage representation lever — but it needs domain pairs (real or synthesized) and compute, and over-fitting on little data is a real risk.</div>
+        </div>
+        <div class="crow saw">
+          <div class="cl">What we saw</div>
+          <div class="cb">Fine-tuning a small MiniLM on <span class="n">195</span> generated paraphrase pairs lifted it <span class="n">0.591 → 0.622</span> (<span class="n">+0.031</span>) — the <b>only trained component to beat its zero-shot baseline</b> (the rankers all tied). Fixing the representation matched the actual failure mode: vocabulary mismatch.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">15 / 27</div>
+  </section>
+
+<section class="slide" id="s16">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>quantization / binarization</b></div>
+      <div class="dotgrp">
+        <span>representation</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">REPRESENTATION</div>
+      <h2 class="h2">Quantization: the <span class="amb">memory–quality</span> dial</h2>
+
+      <div class="concept">
+        <div class="crow">
+          <div class="cl">What it is</div>
+          <div class="cb">Shrink embeddings by storing them at <b>lower precision</b> — trade a little accuracy for a lot of memory and speed.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">How it works</div>
+          <div class="cb"><b>float32 → int8</b>, or all the way to <b>1-bit binary</b>; compare with cheap distances (hamming for binary). Optionally rescore the top-k in full precision to claw quality back.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">The tradeoff</div>
+          <div class="cb">Massive storage and latency savings for a small, measurable quality loss — and you can buy most of that quality back by rescoring finalists in float.</div>
+        </div>
+        <div class="crow saw">
+          <div class="cl">What we saw</div>
+          <div class="cb">Binary cost <span class="n">~0.053</span> nDCG (<span class="n">~12%</span>) for <span class="n">32×</span> smaller vectors on the hard case. The right default at scale (thousands of docs × dozens of tenants); recover the gap with <b>binary recall + float rescoring</b> of the top-k.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">16 / 27</div>
+  </section>
+
+<section class="slide" id="s17">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>the library model</b></div>
+      <div class="dotgrp">
+        <span>rfp-specific</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">RFP-SPECIFIC</div>
+      <h2 class="h2">The library model: <span class="tl">match the question</span></h2>
+
+      <div class="concept">
+        <div class="crow">
+          <div class="cl">What it is</div>
+          <div class="cb">Retrieve against past <b>questions</b>, not past answers — the RFP-specific insight that reframes the whole problem.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">How it works</div>
+          <div class="cb">Index your curated Q&amp;A library keyed on the <b>stored question text</b>; embed the incoming (reworded) question, match it to the closest stored question, then return its <b>vetted answer</b>.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">The tradeoff</div>
+          <div class="cb">Hugely effective when questions recur (security questionnaires) — but it depends on having a curated library and on that recurrence; bespoke, one-off questions benefit less.</div>
+        </div>
+        <div class="crow saw">
+          <div class="cl">What we saw</div>
+          <div class="cb">Matching question→question lifted single-vector semantic <span class="n">0.505 → 0.635</span>, same embedder — only the indexed field changed. <b>The best arm in the whole study, and free.</b> This is why real RFP tools are built around <b>answer libraries</b>, not raw-document RAG.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">17 / 27</div>
+  </section>
+
+<section class="slide" id="s18">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>structural wins</b></div>
+      <div class="dotgrp">
+        <span>rfp-specific</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">RFP-SPECIFIC</div>
+      <h2 class="h2">The <span class="amb">"boring"</span> structural wins</h2>
+
+      <div class="concept">
+        <div class="crow">
+          <div class="cl">What it is</div>
+          <div class="cb">The unglamorous mechanisms that mattered most — <b>tenancy, freshness, dedup</b>. Plumbing, not models.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">How it works</div>
+          <div class="cb">Tenant isolation = a hard metadata <b>filter</b> (never let ranking decide it). Freshness = prefer the newer of near-duplicates (a <b>tie-break</b>), not a global ranking feature. Dedup = collapse near-identical answers.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">The tradeoff</div>
+          <div class="cb">Cheap, robust, and often the biggest wins — but because they're plumbing they get overlooked. A global "freshness feature" actively <b>misleads</b>; freshness only discriminates between duplicates on the same topic.</div>
+        </div>
+        <div class="crow saw">
+          <div class="cl">What we saw</div>
+          <div class="cb">The hard tenant filter was the single biggest relevance intervention (<span class="n">+0.035</span>, <span class="n">p&lt;0.001</span>) and, on the questionnaire corpus, was worth <span class="n">+0.15 to +0.29</span> while removing <span class="n">~350</span> cross-tenant leaks per arm. A global freshness weight learned <b>negative</b>; dedup-then-prefer-fresh worked (<span class="n">+0.011</span>). Structure beat learned ranking repeatedly.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">18 / 27</div>
+  </section>
+
+<section class="slide" id="s19">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>the generation stage &amp; the limits</b></div>
+      <div class="dotgrp">
+        <span>the closer</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">THE GENERATION STAGE</div>
+      <h2 class="h2">Drafting the answer — and its <span class="amb">limits</span></h2>
+
+      <div class="concept tight">
+        <div class="crow">
+          <div class="cl">What it is</div>
+          <div class="cb">Drafting the answer, and knowing what this study does — and does not — prove.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">How it works</div>
+          <div class="cb">Prompt the LLM with retrieved context and instruct it to answer <b>only</b> from that context, declining if it's not covered. <b>Faithfulness</b> and <b>abstention</b> are the safety properties for a compliance product.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">The tradeoff</div>
+          <div class="cb">A well-instructed generator turns retrieval misses into an honest "not covered" instead of confident wrong answers — but that holds for atomic-answer domains; synthesis and essay questions make the generator do real, harder work.</div>
+        </div>
+        <div class="crow saw">
+          <div class="cl">What we saw</div>
+          <div class="cb"><b>Perfect faithfulness and abstention</b> — the generator answered only from context and declined every unanswerable. Correctness (<span class="n">~0.50</span>) was capped entirely by retrieval, exactly as the two-stage model predicts.</div>
+        </div>
+      </div>
+
+      <div class="limitclose">
+        <div class="lk">the honest limit</div>
+        <div class="cq">Our data is security-compliance — a standardized <span class="tl">best case</span> — and the corpus is <span class="amb">LLM-generated</span>. The <span class="tl">architecture</span> (filter, library model, phased ranking, distillation, fine-tuning) should port; the <span class="amb">magnitudes</span> (BM25's dominance, the library jump) won't. Pricing, capabilities, and essay questions are <span class="amb">untested</span>. Know the limits of your eval.</div>
+      </div>
+    </div>
+    <div class="pagenum">19 / 27</div>
+  </section>
+
+<section class="slide" id="s20">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>evaluation &amp; statistical rigour</b></div>
+      <div class="dotgrp">
+        <span>how you know</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">HOW YOU KNOW IT WORKS</div>
+      <h2 class="h2">How you know it <span class="amb">works</span></h2>
+
+      <div class="concept">
+        <div class="crow">
+          <div class="cl">What it is</div>
+          <div class="cb">Measuring retrieval <b>honestly</b> — the part that is easy to fool yourself on.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">How it works</div>
+          <div class="cb"><b>nDCG@10</b> (graded, position-weighted) over TREC qrels; <b>grouped cross-validation</b> (never test on a query you trained on); <b>paired bootstrap</b> (is a delta real or noise?); chunk-level judgments; leakage accounting.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">The tradeoff</div>
+          <div class="cb">Rigorous eval is slow and unglamorous — but without it you ship noise. In-sample numbers flatter; small samples lie.</div>
+        </div>
+        <div class="crow saw">
+          <div class="cl">What we saw</div>
+          <div class="cb">An in-sample fit looked like a <span class="n">+5-point</span> win that grouped CV revealed as a <b>loss</b>; a "pairwise beats zero-shot" result evaporated (<span class="n">p≈0.98</span>) when we scaled the query set. The measurement rig caught — and killed — findings the metrics alone would have shipped.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">20 / 27</div>
+  </section>
+
+<section class="slide" id="s21">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>the 13 experiments</b></div>
+      <div class="dotgrp">
+        <span>adversarial 1–7 · questionnaire 8–13 · 4 pivots</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">THE EXPERIMENTS</div>
+      <h2 class="h2">Thirteen runs, <span class="amb">four pivots</span></h2>
+
+      <div class="exwrap">
+        <div class="excol">
+          <div class="ch"><span>Adversarial set</span><span class="cnt">01 – 07</span></div>
+          <div class="exp">
+            <div class="ei">01</div>
+            <div><div class="et">Run the blueprint</div><div class="er">Shipped LightGBM <b>degrades</b> on a foreign corpus — <span class="dn">0.846</span> vs <span class="up">0.950</span> semantic</div></div>
+          </div>
+          <div class="exp">
+            <div class="ei">02</div>
+            <div><div class="et">Pointwise retrain</div><div class="er"><b>Loses</b> to zero-shot — 0.902 vs 0.950; a <span class="dn">+5pt</span> overfitting illusion</div></div>
+          </div>
+          <div class="exp">
+            <div class="ei">03</div>
+            <div><div class="et">Paragraph chunking</div><div class="er">Fixes chunk selection — <b>invisible</b> to doc-level metrics</div></div>
+          </div>
+          <div class="exp">
+            <div class="ei">04</div>
+            <div><div class="et">Pairwise training</div><div class="er">A <b>better objective</b> than pointwise — <span style="color:var(--dim)">though exp 13 later reversed this</span></div></div>
+          </div>
+          <div class="exp">
+            <div class="ei">05</div>
+            <div><div class="et">Dedup-then-prefer-fresh rerank</div><div class="er">Fixes staleness — <span class="up">+0.011</span>, p≈0.011</div></div>
+          </div>
+          <div class="exp pivot">
+            <div class="ei">06</div>
+            <div><div class="et">Scale 20→80 queries</div><div class="er"><b>Retracts</b> the pairwise-beats-zero-shot claim (p≈0.98); tenant filter <span class="up">+0.035</span>, p&lt;0.001</div></div>
+          </div>
+          <div class="exp">
+            <div class="ei">07</div>
+            <div><div class="et">Abstention on unanswerables</div><div class="er">AUC <b>0.884</b> — first-pass only</div></div>
+          </div>
+        </div>
+
+        <div class="excol">
+          <div class="ch"><span>Questionnaire corpus</span><span class="cnt">08 – 13</span></div>
+          <div class="exp">
+            <div class="ei">08</div>
+            <div><div class="et">Questionnaire corpus + RRF</div><div class="er">Query style <b>flips the winner</b> — BM25 scores <b>0.957</b> verbatim but <b>0.279</b> on paraphrases; tenant crowding an order of magnitude above the small set</div></div>
+          </div>
+          <div class="exp pivot">
+            <div class="ei">09</div>
+            <div><div class="et">Cross-encoder rerank</div><div class="er"><span class="dn">0.505</span> → <span class="up">0.576</span> — at ~2500ms/query</div></div>
+          </div>
+          <div class="exp pivot">
+            <div class="ei">10</div>
+            <div><div class="et">Library model — match the question, not the answer</div><div class="er">0.505 → <span class="up">0.635</span> — <b>the best arm tested, and free</b></div></div>
+          </div>
+          <div class="exp">
+            <div class="ei">11</div>
+            <div><div class="et">ColBERT late interaction</div><div class="er">0.517 at ~60ms — between fusion and the cross-encoder for <b>1/40th the cost</b></div></div>
+          </div>
+          <div class="exp pivot">
+            <div class="ei">12</div>
+            <div><div class="et">Cross-encoder <i>on top of</i> the library model</div><div class="er"><span class="dn">0.578</span> — <b>worse than 0.635 without it</b></div></div>
+          </div>
+          <div class="exp">
+            <div class="ei">13</div>
+            <div><div class="et">Distillation</div><div class="er">Student <span class="up">0.604</span> <b>beats the teacher</b> (0.561); served native at <b>~8ms</b> vs ~2500ms</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">21 / 27</div>
+  </section>
+
+<section class="slide" id="s22">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>results — cost / quality frontier</b></div>
+      <div class="dotgrp">
+        <span>paraphrase set · tenant-filtered</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+
+    <div class="res">
+      <div class="res-head">
+        <h2 class="res-title">The cost / quality <span class="amb">frontier</span></h2>
+        <div class="res-sub">retrieval quality vs. per-query cost<br><b>nDCG@10</b> · 47 paraphrase queries · tenant-filtered</div>
+      </div>
+
+      <div class="legend">
+        <span><span class="sw fast"></span>fast retrieval</span>
+        <span><span class="sw exp"></span>expensive rerank (~2500&nbsp;ms)</span>
+        <span><span class="sw cheap"></span>cheap teacher-quality (ColBERT / distilled)</span>
+      </div>
+
+      <div class="chart">
+        <div class="axis">
+          <span class="tick" style="left:0%">0</span>
+          <span class="tick" style="left:25%">0.2</span>
+          <span class="tick" style="left:50%">0.4</span>
+          <span class="tick" style="left:75%">0.6</span>
+          <span class="tick" style="left:100%">0.8</span>
+        </div>
+
+        <div class="row">
+          <div class="label"><span class="idx">01</span>BM25 (lexical)</div>
+          <div class="track"><span class="gridline" style="left:50%"></span><span class="gridline" style="left:75%"></span>
+            <div class="bar fast" style="width:34.9%"><span class="val">0.279</span></div></div>
+          <div class="cost"><span class="fast">fast</span></div>
+        </div>
+        <div class="row">
+          <div class="label"><span class="idx">02</span>blueprint hybrid</div>
+          <div class="track"><span class="gridline" style="left:50%"></span><span class="gridline" style="left:75%"></span>
+            <div class="bar fast" style="width:54.5%"><span class="val">0.436</span></div></div>
+          <div class="cost"><span class="fast">fast</span></div>
+        </div>
+        <div class="row">
+          <div class="label"><span class="idx">03</span>RRF fusion</div>
+          <div class="track"><span class="gridline" style="left:50%"></span><span class="gridline" style="left:75%"></span>
+            <div class="bar fast" style="width:61.1%"><span class="val">0.489</span></div></div>
+          <div class="cost"><span class="fast">fast</span></div>
+        </div>
+        <div class="row">
+          <div class="label"><span class="idx">04</span>semantic (embed answer)</div>
+          <div class="track"><span class="gridline" style="left:50%"></span><span class="gridline" style="left:75%"></span>
+            <div class="bar fast" style="width:63.1%"><span class="val">0.505</span></div></div>
+          <div class="cost"><span class="fast">fast</span></div>
+        </div>
+        <div class="row">
+          <div class="label"><span class="idx">05</span>ColBERT late interaction</div>
+          <div class="track"><span class="gridline" style="left:50%"></span><span class="gridline" style="left:75%"></span>
+            <div class="bar cheap" style="width:64.6%"><span class="val">0.517</span></div></div>
+          <div class="cost"><span class="cheap">~60 ms</span></div>
+        </div>
+        <div class="row">
+          <div class="label"><span class="idx">06</span>cross-encoder over hybrid</div>
+          <div class="track"><span class="gridline" style="left:50%"></span><span class="gridline" style="left:75%"></span>
+            <div class="bar exp" style="width:70.1%"><span class="val">0.561</span></div></div>
+          <div class="cost"><span class="exp">~2500 ms</span></div>
+        </div>
+        <div class="row">
+          <div class="label"><span class="idx">07</span>cross-encoder rerank</div>
+          <div class="track"><span class="gridline" style="left:50%"></span><span class="gridline" style="left:75%"></span>
+            <div class="bar exp" style="width:72.0%"><span class="val">0.576</span></div></div>
+          <div class="cost"><span class="exp">~2500 ms</span></div>
+        </div>
+        <div class="row">
+          <div class="label"><span class="idx">08</span>library + cross-encoder</div>
+          <div class="track"><span class="gridline" style="left:50%"></span><span class="gridline" style="left:75%"></span>
+            <div class="bar exp" style="width:72.2%"><span class="val">0.578</span></div></div>
+          <div class="cost"><span class="exp">~2500 ms</span></div>
+        </div>
+        <div class="row hi">
+          <div class="label"><span class="idx">09</span>q2q library (embed question)</div>
+          <div class="track"><span class="gridline" style="left:50%"></span><span class="gridline" style="left:75%"></span>
+            <div class="bar fast" style="width:79.4%"><span class="val">0.635</span></div></div>
+          <div class="cost"><span class="fast">fast</span></div>
+        </div>
+      </div>
+
+      <div class="takeaway">
+        <div class="ta">
+          <div class="k">the jump</div>
+          <div class="v">Embedding the <b>question</b>, not the answer, lifts the hard case from <span class="n">0.505</span> to <b class="n">0.635</b> — the best arm tested, and it costs nothing. A structural win, not a bigger model.</div>
+        </div>
+        <div class="ta">
+          <div class="k teal">the cost story</div>
+          <div class="v">The <b>cross-encoder is worse than useless here.</b> Stacked on the library model it scores <span class="n">0.578</span> vs <b class="n">0.635</b> without it — at ~300× the cost. And on <b>verbatim</b> queries the whole stack is <b>redundant</b>: BM25 alone hits <span class="n">0.957</span> and nothing above it helps.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">22 / 27</div>
+  </section>
+
+<section class="slide" id="s23">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>the through-lines</b></div>
+      <div class="dotgrp">
+        <span>what held across all 13 runs</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">THE FINDINGS</div>
+      <h2 class="h2">The <span class="amb">through-lines</span></h2>
+
+      <div class="findings">
+        <div class="find">
+          <div class="fn">01</div>
+          <div>
+            <div class="ft">Structure beats learned ranking at this scale.</div>
+            <div class="fb">Every durable win was structural — hard tenant filter (<span class="n">+0.035</span>, p&lt;0.001), paragraph chunking, dedup-freshness, the library model. Learned rankers repeatedly <b>tied</b> zero-shot.</div>
+          </div>
+        </div>
+        <div class="find">
+          <div class="fn">02</div>
+          <div>
+            <div class="ft">The ranking objective matters — but less than we claimed.</div>
+            <div class="fb">Pointwise lost to pairwise in Experiments <b>2 and 4</b> — then <b>reversed</b> in distillation (<span class="n">0.604</span> vs <span class="n">0.553</span>). That comparison confounds objective with model class, so the "confirmed 3×" version was <b>overstated</b>. Retracted here rather than quietly dropped.</div>
+          </div>
+        </div>
+        <div class="find">
+          <div class="fn">03</div>
+          <div>
+            <div class="ft">The expensive cross-encoder makes things worse.</div>
+            <div class="fb">Stacked on the library model it scores <span class="n">0.578</span> vs <span class="n">0.635</span> without it — rescoring near-identical answers reintroduces the confusion matching questions removes. As an offline <b>teacher</b> it distils to a student that <b>beats it</b> (<span class="n">0.604</span> vs <span class="n">0.561</span>) at <b>~8ms</b>.</div>
+          </div>
+        </div>
+        <div class="find">
+          <div class="fn">04</div>
+          <div>
+            <div class="ft">Corpus difficulty is a dial — and you set it.</div>
+            <div class="fb">The <span class="n">39</span>-doc set was near-ceiling for most retrievers, so a harder one was built: <span class="n">940</span> near-identical answers to one shared question set. Calibrating it took <b>three attempts</b> — too duplicated, then too easy, then right. Every number here is conditional on that choice.</div>
+          </div>
+        </div>
+        <div class="find">
+          <div class="fn">05</div>
+          <div>
+            <div class="ft">The measurement infrastructure was the real product.</div>
+            <div class="fb">Leakage accounting, grouped CV, paired bootstrap, and chunk-level qrels are what <b>found</b> — and <b>killed</b> — findings that noisy metrics would have shipped.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">23 / 27</div>
+  </section>
+
+<section class="slide" id="s24">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>final thoughts</b></div>
+      <div class="dotgrp">
+        <span>scope · limitation · the philosophy</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">FINAL THOUGHTS</div>
+      <h2 class="h2">What we <span class="tl">proved</span>, and what's <span class="amb">left</span></h2>
+
+      <div class="ftcols">
+        <div class="ftcol done">
+          <div class="fk">validated — in depth</div>
+          <div class="fv">The <b>search-quality half</b> of the architecture: retrieval, ranking, chunking, distillation, and the measurement rig that keeps them honest.</div>
+        </div>
+        <div class="ftcol next">
+          <div class="fk">needs the cluster</div>
+          <div class="fv">The <b>production-systems half</b> — cluster sizing, multi-region reliability, observability, hosted model serving — needs real production infrastructure, not a laptop.</div>
+        </div>
+      </div>
+
+      <div class="limit">
+        <div class="lk">honest limitations</div>
+        <div class="lv"><b>The corpus is generated.</b> One model wrote all <span class="n">940</span> answers, so the register is more uniform than real filed text. This is the study's biggest caveat — the highest-value hardening is a <b>real, licensable RFP corpus</b> plus independent expert judgments.</div>
+        <div class="lv" style="margin-top:14px"><b>Narrow test domain.</b> The corpus is security compliance — a standardized, best-case slice of an RFP. The <span class="tl">architectural</span> wins should port; the <span class="amb">magnitudes</span> (BM25's swing from 0.957 verbatim to 0.279 on paraphrases, the library-model jump) won't. Pricing, capabilities and free-text essay questions are <b>untested</b>.</div>
+      </div>
+    </div>
+
+    <div class="closer">
+      <div class="cq">This study set out to <span class="amb">diagnose before optimising</span>, and not to fool itself with noisy results. That discipline is exactly what it kept having to apply to its own findings.</div>
+    </div>
+    <div class="pagenum">24 / 27</div>
+  </section>
+
+<section class="slide" id="s25">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>glossary · retrieval & ranking</b></div>
+      <div class="dotgrp">
+        <span>reference</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+    <div class="pad">
+      <div class="kicker">GLOSSARY · I</div>
+      <h2 class="h2">The <span class="amb">vocabulary</span> — retrieval &amp; ranking</h2>
+      <div class="gloss">
+        <div class="gterm"><div class="gt">Embedding</div><div class="gdf">text turned into a vector of numbers; nearby vectors mean similar things.</div></div>
+        <div class="gterm"><div class="gt">Sparse vs dense</div><div class="gdf">sparse = word-count vectors (BM25); dense = learned meaning vectors.</div></div>
+        <div class="gterm"><div class="gt">ANN / HNSW</div><div class="gdf">approximate nearest-neighbour search — finds close vectors fast via a graph index instead of scanning every doc.</div></div>
+        <div class="gterm"><div class="gt">Cosine / dot / hamming</div><div class="gdf">ways to measure vector closeness: angle between vectors / raw overlap / differing bits (for binary).</div></div>
+        <div class="gterm"><div class="gt">Tokenization</div><div class="gdf">splitting text into the sub-word units a model actually reads.</div></div>
+        <div class="gterm"><div class="gt">Reranking</div><div class="gdf">a second, pricier pass that reorders an already-retrieved shortlist.</div></div>
+        <div class="gterm"><div class="gt">Recall vs precision</div><div class="gdf">recall = did we fetch the right doc at all; precision = how much of what we fetched is right.</div></div>
+        <div class="gterm"><div class="gt">Rank profile / phases</div><div class="gdf">Vespa's scoring config; <b>first / second / global-phase</b> = cheap→expensive ranking stages.</div></div>
+        <div class="gterm"><div class="gt">top-k / targetHits</div><div class="gdf">how many candidates a stage keeps and passes to the next.</div></div>
+        <div class="gterm"><div class="gt">Match-features</div><div class="gdf">feature values Vespa exposes per hit — the raw material for training a ranker.</div></div>
+        <div class="gterm"><div class="gt">Index-time vs query-time</div><div class="gdf">work precomputed when docs are ingested vs work done per search (latency lives here).</div></div>
+        <div class="gterm"><div class="gt">Chunk / passage</div><div class="gdf">the slice of a document that actually gets embedded and retrieved.</div></div>
+      </div>
+    </div>
+    <div class="pagenum">25 / 27</div>
+  </section>
+
+<section class="slide" id="s26">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>glossary · models, training & evaluation</b></div>
+      <div class="dotgrp">
+        <span>reference</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+    <div class="pad">
+      <div class="kicker">GLOSSARY · II</div>
+      <h2 class="h2">The <span class="tl">vocabulary</span> — models, training &amp; eval</h2>
+      <div class="gloss">
+        <div class="gterm"><div class="gt">Cross- vs bi-encoder</div><div class="gdf">reads query+doc <b>together</b> (accurate, slow) vs <b>separately</b> (fast, cacheable).</div></div>
+        <div class="gterm"><div class="gt">Late interaction (ColBERT)</div><div class="gdf">per-token vectors compared with <b>MaxSim</b> — near cross-encoder quality, precomputed.</div></div>
+        <div class="gterm"><div class="gt">GBDT / LightGBM</div><div class="gdf">gradient-boosted decision trees; a fast non-linear ranker over features.</div></div>
+        <div class="gterm"><div class="gt">Pointwise / pairwise</div><div class="gdf">predict each doc's score alone vs learn which of two ranks higher (RankNet).</div></div>
+        <div class="gterm"><div class="gt">Contrastive fine-tuning</div><div class="gdf">pull matching pairs together, push mismatches apart, to teach an embedder your domain.</div></div>
+        <div class="gterm"><div class="gt">In-batch negatives</div><div class="gdf">during training, the other items in the batch serve as free “wrong” examples.</div></div>
+        <div class="gterm"><div class="gt">Zero-shot</div><div class="gdf">using a model as-is, with no task-specific training.</div></div>
+        <div class="gterm"><div class="gt">Distillation</div><div class="gdf">train a cheap <b>student</b> to imitate an expensive <b>teacher</b>'s scores; serve the student.</div></div>
+        <div class="gterm"><div class="gt">Quantization</div><div class="gdf">store vectors at lower precision (int8 / 1-bit) to save memory, with optional float rescoring.</div></div>
+        <div class="gterm"><div class="gt">ONNX</div><div class="gdf">a portable model format Vespa runs in-engine for embedding and reranking.</div></div>
+        <div class="gterm"><div class="gt">nDCG / MRR</div><div class="gdf">quality metrics: graded, position-weighted score / one-over-rank-of-first-correct-hit.</div></div>
+        <div class="gterm"><div class="gt">qrels · CV · bootstrap</div><div class="gdf">the graded answer key / test-on-unseen-queries / resample to check a gain is real, not noise.</div></div>
+      </div>
+    </div>
+    <div class="pagenum">26 / 27</div>
+  </section>
+
+<section class="slide" id="s27">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>glossary · names, generation & statistics</b></div>
+      <div class="dotgrp">
+        <span>reference</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+    <div class="pad">
+      <div class="kicker">GLOSSARY · III</div>
+      <h2 class="h2">The <span class="amb">vocabulary</span> — names, generation &amp; stats</h2>
+      <div class="gloss">
+        <div class="gterm"><div class="gt">ColBERT</div><div class="gdf">the late-interaction model itself — a BERT that emits one vector per <b>token</b>; the name gets used for both the model and the method.</div></div>
+        <div class="gterm"><div class="gt">BM25</div><div class="gdf">the standard lexical score: shared terms, weighted by rarity, damped for repetition and document length.</div></div>
+        <div class="gterm"><div class="gt">RRF (reciprocal rank fusion)</div><div class="gdf">merge two ranked lists by adding <b>1/(k+rank)</b> from each — rank-based, so no score calibration and no training.</div></div>
+        <div class="gterm"><div class="gt">Grounding</div><div class="gdf">answering only from the retrieved context, never from what the model already knows.</div></div>
+        <div class="gterm"><div class="gt">Faithfulness</div><div class="gdf">does the answer actually follow from the context it was handed — scored separately from whether it is correct.</div></div>
+        <div class="gterm"><div class="gt">Hallucination</div><div class="gdf">confident output the retrieved context does not support.</div></div>
+        <div class="gterm"><div class="gt">Abstention</div><div class="gdf">declining when the context doesn't cover the question — the <b>safe</b> failure mode for compliance.</div></div>
+        <div class="gterm"><div class="gt">p-value</div><div class="gdf">odds of a gain this big if the change did nothing. Small = real (<b>p&lt;0.001</b>); large = noise (<b>p≈0.98</b>).</div></div>
+        <div class="gterm"><div class="gt">Leakage</div><div class="gdf">test information reaching training — e.g. tuning on queries you then score on. Inflates every number.</div></div>
+        <div class="gterm"><div class="gt">In-sample vs held-out</div><div class="gdf">scored on the data you fitted on vs data the model has never seen. In-sample always flatters.</div></div>
+        <div class="gterm"><div class="gt">Over-fitting</div><div class="gdf">learning the training set's noise — looks excellent in-sample, fails on new queries.</div></div>
+        <div class="gterm"><div class="gt">Loss function</div><div class="gdf">what training actually optimizes; pick one that doesn't match the task and a better model ranks worse.</div></div>
+      </div>
+    </div>
+    <div class="pagenum">27 / 27</div>
+  </section>
+
+</div>
+
+<div id="progress"></div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var stage = document.getElementById('stage');
+  var progress = document.getElementById('progress');
+  var N = slides.length;
+  var KEY = 'vespa-rag-blueprint-stress-test-slide';
+
+  var idx = parseInt(localStorage.getItem(KEY), 10);
+  if (isNaN(idx) || idx < 0 || idx >= N) idx = 0;
+
+  function show(i){
+    idx = Math.max(0, Math.min(N-1, i));
+    slides.forEach(function(s, k){ s.classList.toggle('active', k === idx); });
+    progress.style.width = ((idx+1)/N*100) + '%';
+    localStorage.setItem(KEY, idx);
+  }
+
+  function fit(){
+    var scale = Math.min(window.innerWidth/1920, window.innerHeight/1080);
+    stage.style.transform = 'scale(' + scale + ')';
+  }
+
+  window.addEventListener('resize', fit);
+  window.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown'){
+      e.preventDefault(); show(idx+1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp'){
+      e.preventDefault(); show(idx-1);
+    } else if (e.key === 'Home'){ show(0); }
+    else if (e.key === 'End'){ show(N-1); }
+  });
+  // click right/left half to advance/retreat
+  document.addEventListener('click', function(e){
+    show(e.clientX > window.innerWidth/2 ? idx+1 : idx-1);
+  });
+
+  fit();
+  show(idx);
+})();
+</script>
+</body>
+</html>

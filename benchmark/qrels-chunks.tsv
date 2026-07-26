@@ -1,0 +1,13 @@
+# Paragraph-level judgments for the chunk-selection queries.
+# Columns: query_id  doc_id  paragraph_index(zero-based, split on blank lines)  grade
+# NOTE: indices assume paragraph chunking. If you chunk at fixed 1024 chars
+# (Vespa RAG-blueprint default), re-derive indices from the offsets after feeding.
+q14	nimbus-infosec-policy	6	2
+q14	nimbus-infosec-policy	5	1
+q14	nimbus-infosec-policy	0	0
+q14	nimbus-infosec-policy	4	0
+q15	nimbus-assurance	5	2
+q15	nimbus-assurance	6	1
+q15	nimbus-assurance	2	0
+q15	nimbus-assurance	3	0
+q15	nimbus-assurance	4	0

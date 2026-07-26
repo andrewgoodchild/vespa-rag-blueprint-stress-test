@@ -1,0 +1,353 @@
+<meta charset="utf-8">
+<title>A retrieval stack, stress-tested — Editorial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F1E8;
+    --paper-2:#F7F4EC;
+    --ink:#7A1F2B;         /* oxblood accent */
+    --ink-soft:#9A4551;
+    --charcoal:#211E1A;
+    --muted:#6B655B;
+    --hair:#CFC8B8;
+    --hair-strong:#B9B0A0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#2a2824}
+  .deck{display:flex;flex-direction:column;align-items:center;gap:0}
+  section{
+    width:1920px;height:1080px;overflow:hidden;position:relative;
+    background:var(--paper);
+    color:var(--charcoal);
+    font-family:"Inter",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .serif{font-family:"Fraunces",Georgia,serif;}
+  .kicker{
+    font-family:"Inter",sans-serif;font-weight:600;
+    font-size:17px;letter-spacing:.32em;text-transform:uppercase;
+    color:var(--ink);
+  }
+  .hair{height:1px;background:var(--hair-strong);border:0;width:100%}
+
+  /* ============ PAGE 1 — HERO ============ */
+  .p1{padding:96px 150px 88px}
+  .p1 .topbar{display:flex;justify-content:space-between;align-items:baseline}
+  .p1 .topbar .id{font-size:16px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);font-weight:500}
+  .p1 .rule-top{margin:26px 0 0}
+  .p1 .body{display:grid;grid-template-columns:1fr 560px;gap:0;margin-top:78px}
+
+  .p1 .lead .eyebrow{
+    font-family:"Fraunces",serif;font-style:italic;font-weight:400;
+    font-size:34px;color:var(--ink);margin-bottom:26px;letter-spacing:.005em;
+  }
+  .p1 h1{
+    font-family:"Fraunces",serif;font-weight:600;
+    font-size:132px;line-height:.96;letter-spacing:-.02em;color:var(--charcoal);
+  }
+  .p1 h1 em{font-style:italic;font-weight:500;color:var(--ink)}
+  .p1 .sub{
+    margin-top:44px;max-width:820px;
+    font-size:29px;line-height:1.5;color:var(--muted);font-weight:400;
+  }
+  .p1 .sub b{color:var(--charcoal);font-weight:600}
+
+  .p1 .tags{margin-top:62px;display:flex;align-items:center;gap:0;flex-wrap:wrap}
+  .p1 .tags .t{
+    font-size:19px;font-weight:500;color:var(--charcoal);
+    padding:0 26px 0 0;margin-right:26px;position:relative;letter-spacing:.01em;
+  }
+  .p1 .tags .t:not(:last-child)::after{
+    content:"";position:absolute;right:0;top:50%;transform:translateY(-50%);
+    width:5px;height:5px;border-radius:50%;background:var(--ink-soft);
+  }
+  .p1 .tags .tlabel{font-size:15px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-right:34px}
+
+  /* focal stat panel */
+  .p1 .stat{
+    border-left:1px solid var(--hair-strong);padding-left:64px;
+    display:flex;flex-direction:column;justify-content:center;height:100%;
+  }
+  .p1 .stat .lbl{font-size:16px;letter-spacing:.26em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .p1 .stat .metric{font-family:"Fraunces",serif;font-weight:500;font-size:23px;color:var(--charcoal);margin-top:8px;letter-spacing:.02em}
+  .p1 .stat .nums{margin-top:40px;display:flex;align-items:baseline;gap:0}
+  .p1 .stat .from{font-family:"Fraunces",serif;font-weight:400;font-size:96px;color:var(--muted);line-height:1}
+  .p1 .stat .arrow{font-family:"Fraunces",serif;font-size:60px;color:var(--ink);margin:0 26px;line-height:1}
+  .p1 .stat .to{font-family:"Fraunces",serif;font-weight:600;font-size:148px;color:var(--ink);line-height:.9;letter-spacing:-.02em}
+  .p1 .stat .unit{margin-top:26px;font-size:22px;color:var(--charcoal);font-weight:500}
+  .p1 .stat .unit span{color:var(--muted)}
+  .p1 .stat .caption{margin-top:30px;font-size:18px;line-height:1.55;color:var(--muted);max-width:420px}
+  .p1 .stat .caption b{color:var(--charcoal);font-weight:600}
+
+  .p1 .footer{position:absolute;left:150px;right:150px;bottom:64px;display:flex;justify-content:space-between;align-items:baseline}
+  .p1 .footer .l{font-size:17px;color:var(--muted);letter-spacing:.02em}
+  .p1 .footer .l b{color:var(--charcoal);font-weight:600}
+  .p1 .footer .r{font-size:16px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink);font-weight:600}
+
+  /* ============ PAGE 2 — RESULTS ============ */
+  .p2{padding:76px 150px 80px}
+  .p2 .head{display:flex;justify-content:space-between;align-items:flex-end}
+  .p2 .head .lft{max-width:1150px}
+  .p2 .head h2{
+    font-family:"Fraunces",serif;font-weight:600;font-size:76px;line-height:1;
+    letter-spacing:-.015em;color:var(--charcoal);margin-top:20px;
+  }
+  .p2 .head h2 em{font-style:italic;font-weight:500;color:var(--ink)}
+  .p2 .head .meta{text-align:right;font-size:17px;line-height:1.7;color:var(--muted)}
+  .p2 .head .meta b{color:var(--charcoal);font-weight:600;display:block;font-size:19px;letter-spacing:.02em}
+  .p2 .rule2{margin:40px 0 0}
+
+  /* axis */
+  .chart{position:relative;margin-top:20px}
+  .axis{position:relative;height:34px;margin-left:var(--labelw);margin-right:340px}
+  .axis .tick{position:absolute;top:0;bottom:0;width:1px;background:var(--hair)}
+  .axis .tick.zero{background:var(--hair-strong)}
+  .axis .tval{position:absolute;top:12px;transform:translateX(-50%);font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:500}
+
+  :root{--labelw:430px}
+  .row{
+    display:grid;grid-template-columns:var(--labelw) 1fr 340px;align-items:center;
+    height:80px;border-top:1px solid var(--hair);
+  }
+  .row:last-child{border-bottom:1px solid var(--hair)}
+  .row .name{padding-right:34px}
+  .row .name .tech{font-size:24px;font-weight:600;color:var(--charcoal);letter-spacing:-.005em;line-height:1.1}
+  .row .name .tech em{font-family:"Fraunces",serif;font-style:italic;font-weight:400}
+  .row .name .note{font-size:15px;color:var(--muted);margin-top:3px}
+
+  .track{position:relative;height:100%}
+  .track .grid{position:absolute;top:0;bottom:0;width:1px;background:var(--hair);opacity:.7}
+  .bar{
+    position:absolute;top:50%;transform:translateY(-50%);left:0;height:26px;
+    background:var(--hair-strong);border-radius:0 2px 2px 0;
+    display:flex;align-items:center;
+  }
+  .bar.accent{background:var(--ink)}
+  .bar.hollow{background:transparent;border:1.5px solid var(--ink-soft);border-left:0}
+  .bar .val{
+    position:absolute;left:calc(100% + 16px);top:50%;transform:translateY(-50%);
+    font-family:"Fraunces",serif;font-size:29px;font-weight:500;color:var(--charcoal);
+    font-variant-numeric:tabular-nums;white-space:nowrap;
+  }
+  .bar.accent .val{color:var(--ink);font-weight:600}
+
+  /* cost column */
+  .cost{padding-left:40px;border-left:1px solid var(--hair);height:100%;display:flex;flex-direction:column;justify-content:center}
+  .cost .cnum{font-size:22px;font-weight:600;color:var(--charcoal);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+  .cost .cnum.cheap{color:var(--ink)}
+  .cost .clabel{font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-top:3px}
+  .cost .clabel.exp{color:var(--ink-soft)}
+
+  .p2 .foot{position:absolute;left:150px;right:150px;bottom:56px;display:flex;justify-content:space-between;align-items:flex-start;gap:60px}
+  .p2 .foot .take{font-size:20px;line-height:1.55;color:var(--muted);max-width:1120px}
+  .p2 .foot .take b{color:var(--charcoal);font-weight:600}
+  .p2 .foot .take .hl{color:var(--ink);font-weight:600}
+  .p2 .foot .legend{display:flex;flex-direction:column;gap:12px;flex-shrink:0}
+  .p2 .foot .legend .li{display:flex;align-items:center;gap:14px;font-size:16px;color:var(--muted);font-weight:500}
+  .p2 .foot .legend .sw{width:34px;height:14px;flex-shrink:0}
+  .p2 .foot .legend .sw.a{background:var(--ink)}
+  .p2 .foot .legend .sw.b{background:var(--hair-strong)}
+  .p2 .foot .legend .sw.c{border:1.5px solid var(--ink-soft);height:12px}
+</style>
+
+<div class="deck">
+
+  <!-- ================= PAGE 1 : HERO ================= -->
+  <section class="p1">
+    <div class="topbar">
+      <div class="kicker">Retrieval&nbsp;·&nbsp;An architecture stress-test</div>
+      <div class="id">Multi-tenant RFP retrieval · 13 experiments</div>
+    </div>
+    <hr class="hair rule-top">
+
+    <div class="body">
+      <div class="lead">
+        <div class="eyebrow">A search-quality brief</div>
+        <h1>A retrieval stack,<br><em>stress-tested</em></h1>
+        <p class="sub">
+          Which parts of a phased RAG pipeline really earn their cost — and
+          <b>13 experiments</b> answering it. We deployed the Vespa RAG Blueprint
+          against a fictional multi-tenant RFP workload, built an adversarial
+          benchmark, and measured where it breaks.
+        </p>
+
+        <div class="tags">
+          <span class="tlabel">Stack under test</span>
+          <span class="t">Vespa</span>
+          <span class="t">Hybrid retrieval</span>
+          <span class="t">Cross-encoder</span>
+          <span class="t">ColBERT</span>
+          <span class="t">Distillation</span>
+        </div>
+      </div>
+
+      <div class="stat">
+        <div class="lbl">The anchor result</div>
+        <div class="metric">Retrieval quality on the hard real case</div>
+        <div class="nums">
+          <span class="from">0.453</span>
+          <span class="arrow">→</span>
+          <span class="to">0.774</span>
+        </div>
+        <div class="unit">nDCG@10 &nbsp;<span>· real paraphrase set, tenant-filtered</span></div>
+        <div class="caption">
+          A <b>+0.321</b> climb — not from a bigger model, but from structure:
+          the right recall model, then a reranker you can retire.
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="l">Corpora: <b>39 synthetic docs</b> + <b>940 questionnaire answers</b> · Graded TREC qrels · Paired-bootstrap significance</div>
+      <div class="r">01 — Title</div>
+    </div>
+  </section>
+
+  <!-- ================= PAGE 2 : RESULTS ================= -->
+  <section class="p2">
+    <div class="head">
+      <div class="lft">
+        <div class="kicker">Findings · The cost / quality frontier</div>
+        <h2>Every gain has a <em>price</em> — and the top isn't the dear one</h2>
+      </div>
+      <div class="meta">
+        <b>nDCG@10</b>
+        real paraphrase set<br>tenant-filtered · 940 answers
+      </div>
+    </div>
+    <hr class="hair rule2">
+
+    <div class="chart">
+      <!-- axis: 0 → 1.00 (nDCG ceiling); bar width = value * 100% -->
+      <div class="axis">
+        <div class="tick zero" style="left:0%"></div>
+        <div class="tval" style="left:0%">0</div>
+        <div class="tick" style="left:20%"></div>
+        <div class="tval" style="left:20%">0.20</div>
+        <div class="tick" style="left:40%"></div>
+        <div class="tval" style="left:40%">0.40</div>
+        <div class="tick" style="left:60%"></div>
+        <div class="tval" style="left:60%">0.60</div>
+        <div class="tick" style="left:80%"></div>
+        <div class="tval" style="left:80%">0.80</div>
+        <div class="tick" style="left:100%"></div>
+        <div class="tval" style="left:100%">1.00</div>
+      </div>
+
+      <!-- rows: bar width = value/0.80 * 100% -->
+      <!-- 1 semantic 0.377 -->
+      <div class="row">
+        <div class="name">
+          <div class="tech">Semantic <em>(embed the answer)</em></div>
+          <div class="note">Blueprint default retrieval</div>
+        </div>
+        <div class="track">
+          <div class="grid" style="left:20%"></div><div class="grid" style="left:40%"></div><div class="grid" style="left:60%"></div><div class="grid" style="left:80%"></div>
+          <div class="bar" style="width:37.7%"><span class="val">0.377</span></div>
+        </div>
+        <div class="cost"><div class="cnum cheap">fast</div><div class="clabel">single pass</div></div>
+      </div>
+      <!-- 2 blueprint hybrid 0.390 -->
+      <div class="row">
+        <div class="name">
+          <div class="tech">Blueprint hybrid</div>
+          <div class="note">BM25 + semantic, shipped config</div>
+        </div>
+        <div class="track">
+          <div class="grid" style="left:20%"></div><div class="grid" style="left:40%"></div><div class="grid" style="left:60%"></div><div class="grid" style="left:80%"></div>
+          <div class="bar" style="width:39.0%"><span class="val">0.390</span></div>
+        </div>
+        <div class="cost"><div class="cnum cheap">fast</div><div class="clabel">single pass</div></div>
+      </div>
+      <!-- 3 RRF 0.453 -->
+      <div class="row">
+        <div class="name">
+          <div class="tech">RRF fusion</div>
+          <div class="note">Reciprocal-rank blend · the baseline</div>
+        </div>
+        <div class="track">
+          <div class="grid" style="left:20%"></div><div class="grid" style="left:40%"></div><div class="grid" style="left:60%"></div><div class="grid" style="left:80%"></div>
+          <div class="bar" style="width:45.3%"><span class="val">0.453</span></div>
+        </div>
+        <div class="cost"><div class="cnum cheap">fast</div><div class="clabel">single pass</div></div>
+      </div>
+      <!-- 4 q2q library 0.648 -->
+      <div class="row">
+        <div class="name">
+          <div class="tech">q2q library <em>(embed the question)</em></div>
+          <div class="note">Structural fix — match the ask, not the answer</div>
+        </div>
+        <div class="track">
+          <div class="grid" style="left:20%"></div><div class="grid" style="left:40%"></div><div class="grid" style="left:60%"></div><div class="grid" style="left:80%"></div>
+          <div class="bar accent" style="width:64.8%"><span class="val">0.648</span></div>
+        </div>
+        <div class="cost"><div class="cnum cheap">fast</div><div class="clabel">single pass</div></div>
+      </div>
+      <!-- 5 cross-encoder 0.717 -->
+      <div class="row">
+        <div class="name">
+          <div class="tech">Cross-encoder rerank</div>
+          <div class="note">Expensive teacher-quality signal</div>
+        </div>
+        <div class="track">
+          <div class="grid" style="left:20%"></div><div class="grid" style="left:40%"></div><div class="grid" style="left:60%"></div><div class="grid" style="left:80%"></div>
+          <div class="bar hollow" style="width:71.7%"><span class="val">0.717</span></div>
+        </div>
+        <div class="cost"><div class="cnum">~2400 ms</div><div class="clabel exp">per query</div></div>
+      </div>
+      <!-- 6 ColBERT 0.752 -->
+      <div class="row">
+        <div class="name">
+          <div class="tech">ColBERT late interaction</div>
+          <div class="note">Teacher quality, ~40× cheaper</div>
+        </div>
+        <div class="track">
+          <div class="grid" style="left:20%"></div><div class="grid" style="left:40%"></div><div class="grid" style="left:60%"></div><div class="grid" style="left:80%"></div>
+          <div class="bar accent" style="width:75.2%"><span class="val">0.752</span></div>
+        </div>
+        <div class="cost"><div class="cnum cheap">~60 ms</div><div class="clabel">per query</div></div>
+      </div>
+      <!-- 7 library + cross-encoder 0.774 -->
+      <div class="row">
+        <div class="name">
+          <div class="tech">Library recall + cross-encoder</div>
+          <div class="note">The full stack — best quality</div>
+        </div>
+        <div class="track">
+          <div class="grid" style="left:20%"></div><div class="grid" style="left:40%"></div><div class="grid" style="left:60%"></div><div class="grid" style="left:80%"></div>
+          <div class="bar hollow" style="width:77.4%"><span class="val">0.774</span></div>
+        </div>
+        <div class="cost"><div class="cnum">~2400 ms</div><div class="clabel exp">per query</div></div>
+      </div>
+      <!-- 8 distilled 0.747 -->
+      <div class="row">
+        <div class="name">
+          <div class="tech">Distilled pairwise student</div>
+          <div class="note">Teacher retired — served native in Vespa</div>
+        </div>
+        <div class="track">
+          <div class="grid" style="left:20%"></div><div class="grid" style="left:40%"></div><div class="grid" style="left:60%"></div><div class="grid" style="left:80%"></div>
+          <div class="bar accent" style="width:74.7%"><span class="val">0.747</span></div>
+        </div>
+        <div class="cost"><div class="cnum cheap">~7 ms</div><div class="clabel">server-side</div></div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <div class="take">
+        The climb from <b>0.377 to 0.774</b> is structural, not brute force. The
+        expensive cross-encoder (<b>~2400 ms</b>) is only a teacher: <span class="hl">ColBERT
+        reaches 0.752 at ~60 ms</span> and a <span class="hl">distilled student holds 0.747 at ~7 ms</span> —
+        teacher-grade quality at a fraction of the cost.
+      </div>
+      <div class="legend">
+        <div class="li"><span class="sw a"></span> Cheap · high value</div>
+        <div class="li"><span class="sw c"></span> Expensive teacher (~2400 ms)</div>
+        <div class="li"><span class="sw b"></span> Baseline retrieval</div>
+      </div>
+    </div>
+  </section>
+
+</div>

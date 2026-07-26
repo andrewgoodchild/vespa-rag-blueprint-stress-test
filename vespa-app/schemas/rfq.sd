@@ -1,0 +1,111 @@
+# Questionnaire corpus (Experiment 8): four fictional vendors' answers to a
+# shared question set. One doc per (vendor, question); title = question, chunks = [answer].
+schema rfq {
+
+    document rfq {
+
+        field id type string {
+            indexing: summary | attribute
+        }
+
+        field tenant type string {
+            indexing: summary | attribute
+            attribute: fast-search
+        }
+
+        field doc_type type string {
+            indexing: summary | attribute
+        }
+
+        field question_id type string {
+            indexing: summary | attribute
+        }
+
+        field control_id type string {
+            indexing: summary | attribute
+        }
+
+        field title type string {
+            indexing: index | summary
+            index: enable-bm25
+        }
+
+        field text type string {
+        }
+
+        field chunks type array<string> {
+            indexing: summary | index
+            index: enable-bm25
+        }
+
+        field created_timestamp type long {
+            indexing: attribute | summary
+        }
+        field modified_timestamp type long {
+            indexing: attribute | summary
+        }
+        field last_opened_timestamp type long {
+            indexing: attribute | summary
+        }
+        field open_count type int {
+            indexing: attribute | summary
+        }
+        field favorite type bool {
+            indexing: attribute | summary
+        }
+
+    }
+
+    field title_embedding type tensor<int8>(x[96]) {
+        indexing: input title | embed nomicmb | pack_bits | attribute | index
+        attribute {
+            distance-metric: hamming
+        }
+    }
+
+    field ce_tokens type tensor<float>(d0[256]) {
+        indexing: (input title || "") . " " . (input text || "") | embed tokenizer | attribute
+    }
+
+    field colbert type tensor<int8>(dt{}, x[16]) {
+        indexing: (input title || "") . " " . (input text || "") | embed colbert | attribute
+    }
+
+    field title_emb_f type tensor<float>(x[768]) {
+        indexing: input title | embed nomicmb | attribute
+    }
+
+    field chunk_emb_f type tensor<float>(chunk{}, x[768]) {
+        indexing: input chunks | embed nomicmb | attribute
+    }
+
+    field chunk_embeddings type tensor<int8>(chunk{}, x[96]) {
+        indexing: input chunks | embed nomicmb | pack_bits | attribute | index
+        attribute {
+            distance-metric: hamming
+        }
+    }
+
+    fieldset default {
+        fields: title, chunks
+    }
+
+    document-summary no-chunks {
+        summary id {}
+        summary tenant {}
+        summary title {}
+        summary created_timestamp {}
+        summary modified_timestamp {}
+        summary chunks {}
+    }
+
+    document-summary top_3_chunks {
+        from-disk
+        summary id {}
+        summary tenant {}
+        summary chunks_top3 {
+            source: chunks
+            select-elements-by: top_3_chunk_sim_scores
+        }
+    }
+}

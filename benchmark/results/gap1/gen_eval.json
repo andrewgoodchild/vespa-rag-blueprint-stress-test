@@ -1,0 +1,158 @@
+{
+ "answerable": [
+  {
+   "q": "How do you keep track of your vendors' practices after the first check, and when do you decide to look again?",
+   "faith": 1,
+   "corr": 1,
+   "abstained": false
+  },
+  {
+   "q": "How do you check if you\u2019re collecting only the data you really need?",
+   "faith": 1,
+   "corr": 1,
+   "abstained": false
+  },
+  {
+   "q": "Do you ever skip your usual steps for fixing problems, and how do you keep track of that?",
+   "faith": 1,
+   "corr": 0,
+   "abstained": true
+  },
+  {
+   "q": "How does your team handle issues found during audits to make sure they get fixed quickly?",
+   "faith": 1,
+   "corr": 1,
+   "abstained": false
+  },
+  {
+   "q": "How does your company manage user access across different systems and services?",
+   "faith": 1,
+   "corr": 0,
+   "abstained": false
+  },
+  {
+   "q": "How does management make sure everyone is aware of compliance and risks in the company?",
+   "faith": 1,
+   "corr": 1,
+   "abstained": false
+  },
+  {
+   "q": "How do you make sure your team knows how to keep the network safe and organized?",
+   "faith": 1,
+   "corr": 1,
+   "abstained": false
+  },
+  {
+   "q": "How do you make sure your data protection methods meet the rules, and who checks that?",
+   "faith": 1,
+   "corr": 0,
+   "abstained": true
+  },
+  {
+   "q": "Who makes sure that our team is keeping our people safe in the company?",
+   "faith": 1,
+   "corr": 0,
+   "abstained": true
+  },
+  {
+   "q": "How do you keep your systems safe from attacks that overwhelm them, and what tools do you use for that?",
+   "faith": 1,
+   "corr": 1,
+   "abstained": false
+  },
+  {
+   "q": "How do you keep track of and protect the outside tools and services you use in your apps?",
+   "faith": 1,
+   "corr": 0,
+   "abstained": true
+  },
+  {
+   "q": "How often do you check and update your processes to keep devices safe from new risks?",
+   "faith": 1,
+   "corr": 1,
+   "abstained": false
+  },
+  {
+   "q": "How do you check if your security measures are working and when do you decide to make changes?",
+   "faith": 1,
+   "corr": 0,
+   "abstained": true
+  },
+  {
+   "q": "How often do you check if employees have the right access based on what they do?",
+   "faith": 1,
+   "corr": 1,
+   "abstained": false
+  },
+  {
+   "q": "How do you involve your suppliers in your backup plans, and what roles do they play?",
+   "faith": 1,
+   "corr": 0,
+   "abstained": true
+  },
+  {
+   "q": "How do you handle fixing different levels of issues, and how do you keep everyone in the loop?",
+   "faith": 1,
+   "corr": 0,
+   "abstained": true
+  },
+  {
+   "q": "Have you had any outside reviews of your security practices, and what did they find?",
+   "faith": 1,
+   "corr": 0,
+   "abstained": true
+  },
+  {
+   "q": "How do you make sure your team knows what to do if something goes wrong, and how do you check if they get it?",
+   "faith": 1,
+   "corr": 0,
+   "abstained": true
+  },
+  {
+   "q": "How do you deal with situations where someone needs special access, and who decides if that's okay?",
+   "faith": 1,
+   "corr": 1,
+   "abstained": false
+  },
+  {
+   "q": "How often do you check if the system meets our rules and how do you know it\u2019s working well?",
+   "faith": 1,
+   "corr": 1,
+   "abstained": false
+  }
+ ],
+ "unanswerable": [
+  {
+   "q": "What is your annual subscription pricing for enterprise customers?",
+   "abstained": true
+  },
+  {
+   "q": "What is your company's net-zero carbon target date?",
+   "abstained": true
+  },
+  {
+   "q": "Do you offer a free trial, and how long does it last?",
+   "abstained": true
+  },
+  {
+   "q": "How many patents does your company currently hold?",
+   "abstained": true
+  },
+  {
+   "q": "What is your customer refund and cancellation policy?",
+   "abstained": true
+  },
+  {
+   "q": "What programming languages is your product built in?",
+   "abstained": true
+  },
+  {
+   "q": "Who is your current Chief Executive Officer?",
+   "abstained": true
+  },
+  {
+   "q": "What is your average employee Glassdoor rating?",
+   "abstained": true
+  }
+ ]
+}
