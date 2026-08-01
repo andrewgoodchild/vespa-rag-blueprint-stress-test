@@ -162,7 +162,7 @@
   .hcard li b{color:var(--ink);font-weight:600}
   .hcard li .n{color:var(--teal)}
 
-  /* ---------- PAGE 5 : 13 experiments ---------- */
+  /* ---------- PAGE 5 : 15 experiments ---------- */
   .exwrap{margin-top:30px;flex:1;display:grid;grid-template-columns:1fr 1fr;gap:56px}
   .excol .ch{font-family:'JetBrains Mono',monospace;font-size:15px;letter-spacing:.16em;
     text-transform:uppercase;color:var(--teal);padding-bottom:12px;margin-bottom:6px;
@@ -204,6 +204,8 @@
     font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--dim)}
   .axis .tick::after{content:"";position:absolute;left:50%;bottom:-1px;width:1px;height:6px;background:var(--line)}
   .row{display:flex;align-items:center;height:61px;border-bottom:1px solid rgba(51,46,39,.5)}
+  /* ten rows since the HyDE arm joined — tighter rows keep the chart clear of the takeaway */
+  #s22 .row{height:52px}
   .row.hi{background:linear-gradient(90deg,rgba(232,161,58,.09),rgba(232,161,58,0) 70%)}
   .row .label{width:430px;padding-right:28px;text-align:right;
     font-family:'JetBrains Mono',monospace;font-size:20px;color:var(--ink);letter-spacing:-.01em}
@@ -351,7 +353,7 @@
 
       <div class="overline">ARCHITECTURE STRESS-TEST · THE CONCEPTS AND THE EVIDENCE</div>
       <h1 class="title">A retrieval stack,<br>stress-tested</h1>
-      <p class="subtitle">Which parts of a <b>phased RAG pipeline</b> actually earn their cost. Every technique explained, then measured: we deployed the Vespa RAG Blueprint, built an adversarial benchmark, and ran <b>13 experiments</b> to find where it breaks.</p>
+      <p class="subtitle">Which parts of a <b>phased RAG pipeline</b> actually earn their cost. Every technique explained, then measured: we deployed the Vespa RAG Blueprint, built an adversarial benchmark, and ran <b>15 experiments</b> to find where it breaks.</p>
 
       <div class="statwrap">
         <div class="statblock">
@@ -381,14 +383,14 @@
       <span class="tag">ColBERT</span>
       <span class="tag">distillation</span>
     </div>
-    <div class="pagenum">01 / 27</div>
+    <div class="pagenum">01 / 28</div>
   </section>
 
   <section class="slide" id="s2">
     <div class="topbar">
       <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>what's in here</b></div>
       <div class="dotgrp">
-        <span>27 slides · concepts, evidence, reference</span>
+        <span>28 slides · concepts, evidence, reference</span>
         <span class="dot on"></span><span class="dot"></span><span class="dot"></span>
       </div>
     </div>
@@ -419,12 +421,12 @@
         </div>
         <div class="grp">
           <div class="gn">19</div>
-          <div><div class="gl">What we learned</div><div class="gd">generation · measurement rigour · 13 runs · the cost/quality frontier · through-lines · limits</div></div>
+          <div><div class="gl">What we learned</div><div class="gd">generation · measurement rigour · 15 runs · the cost/quality frontier · through-lines · limits</div></div>
         </div>
       </div>
       <div class="footnote" style="margin-top:auto;padding-bottom:40px"><b>Reference:</b> a three-page glossary at the back — 36 terms, every piece of vocabulary this deck uses.</div>
     </div>
-    <div class="pagenum">02 / 27</div>
+    <div class="pagenum">02 / 28</div>
   </section>
 
 <section class="slide" id="s3">
@@ -486,7 +488,7 @@
 
       <div class="footnote"><b>pgvector as the reference point</b>&nbsp;&nbsp;·&nbsp;&nbsp;it is the common default, and the comparison is about what one engine does in one query — not product quality</div>
     </div>
-    <div class="pagenum">03 / 27</div>
+    <div class="pagenum">03 / 28</div>
   </section>
 
 <section class="slide" id="s4">
@@ -559,7 +561,7 @@
         <div class="txt">No tenant concept, no cross-encoder, no late interaction — <b>those are this study's additions</b>.</div>
       </div>
     </div>
-    <div class="pagenum">04 / 27</div>
+    <div class="pagenum">04 / 28</div>
   </section>
 
 <section class="slide" id="s5">
@@ -629,7 +631,7 @@
         <div class="pq">"Diagnose before you optimise, ship incrementally, don't fool yourself with noisy results."</div>
       </div>
     </div>
-    <div class="pagenum">05 / 27</div>
+    <div class="pagenum">05 / 28</div>
   </section>
 
 <section class="slide" id="s6">
@@ -664,7 +666,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">06 / 27</div>
+    <div class="pagenum">06 / 28</div>
   </section>
 
 <section class="slide" id="s7">
@@ -699,7 +701,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">07 / 27</div>
+    <div class="pagenum">07 / 28</div>
   </section>
 
 <section class="slide" id="s8">
@@ -734,7 +736,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">08 / 27</div>
+    <div class="pagenum">08 / 28</div>
   </section>
 
 <section class="slide" id="s9">
@@ -769,7 +771,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">09 / 27</div>
+    <div class="pagenum">09 / 28</div>
   </section>
 
 <section class="slide" id="s10">
@@ -804,7 +806,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">10 / 27</div>
+    <div class="pagenum">10 / 28</div>
   </section>
 
 <section class="slide" id="s11">
@@ -839,7 +841,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">11 / 27</div>
+    <div class="pagenum">11 / 28</div>
   </section>
 
 <section class="slide" id="s12">
@@ -874,7 +876,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">12 / 27</div>
+    <div class="pagenum">12 / 28</div>
   </section>
 
 <section class="slide" id="s13">
@@ -909,7 +911,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">13 / 27</div>
+    <div class="pagenum">13 / 28</div>
   </section>
 
 <section class="slide" id="s14">
@@ -944,7 +946,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">14 / 27</div>
+    <div class="pagenum">14 / 28</div>
   </section>
 
 <section class="slide" id="s15">
@@ -979,7 +981,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">15 / 27</div>
+    <div class="pagenum">15 / 28</div>
   </section>
 
 <section class="slide" id="s16">
@@ -1014,7 +1016,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">16 / 27</div>
+    <div class="pagenum">16 / 28</div>
   </section>
 
 <section class="slide" id="s17">
@@ -1049,7 +1051,42 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">17 / 27</div>
+    <div class="pagenum">17 / 28</div>
+  </section>
+
+<section class="slide" id="s17b">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>hyde — rewrite the query</b></div>
+      <div class="dotgrp">
+        <span>query-side</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">QUERY-SIDE</div>
+      <h2 class="h2">HyDE: rewrite the <span class="amb">query</span>, not the ranking</h2>
+
+      <div class="concept">
+        <div class="crow">
+          <div class="cl">What it is</div>
+          <div class="cb">Have an LLM write the <b>hypothetical document</b> a query should match, and embed that instead — the canonical query-side intervention, and the one stage this study hadn't tested.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">How it works</div>
+          <div class="cb">Two directions: classic HyDE writes a hypothetical <b>answer</b> (into answer space); the symmetric variant reconstructs the <b>standard question</b> being paraphrased (into question space — where the library model says the signal is). Concatenating the <b>original query</b> hedges wrong reconstructions.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">The tradeoff</div>
+          <div class="cb">A <span class="n">~2 s</span> LLM call per query — cross-encoder-class latency, cacheable across repeat questions. Aimed at the wrong target space, the call is wasted; aimed right, it competes with the best arm in the study.</div>
+        </div>
+        <div class="crow saw">
+          <div class="cl">What we saw</div>
+          <div class="cb"><b>Direction decided everything.</b> Answer-space never touched the library model (<span class="n">−0.129</span>, p&lt;0.0001). Question-space + original query hit <span class="n">0.719</span> on 47 queries — best number yet — then <b>failed out-of-sample confirmation</b> at 232 (<span class="n">+0.023</span>, p≈0.24). Confirmed instead: it <b>beats the equal-cost cross-encoder</b> (p≈0.001), and rewriting <i>without</i> the original query is actively harmful (<span class="n">−0.073</span>, p≈0.003).</div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">18 / 28</div>
   </section>
 
 <section class="slide" id="s18">
@@ -1084,7 +1121,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">18 / 27</div>
+    <div class="pagenum">19 / 28</div>
   </section>
 
 <section class="slide" id="s19">
@@ -1124,7 +1161,7 @@
         <div class="cq">Our data is security-compliance — a standardized <span class="tl">best case</span> — and the corpus is <span class="amb">LLM-generated</span>. The <span class="tl">architecture</span> (filter, library model, phased ranking, distillation, fine-tuning) should port; the <span class="amb">magnitudes</span> (BM25's dominance, the library jump) won't. Pricing, capabilities, and essay questions are <span class="amb">untested</span>. Know the limits of your eval.</div>
       </div>
     </div>
-    <div class="pagenum">19 / 27</div>
+    <div class="pagenum">20 / 28</div>
   </section>
 
 <section class="slide" id="s20">
@@ -1159,21 +1196,21 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">20 / 27</div>
+    <div class="pagenum">21 / 28</div>
   </section>
 
 <section class="slide" id="s21">
     <div class="topbar">
-      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>the 13 experiments</b></div>
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>the 15 experiments</b></div>
       <div class="dotgrp">
-        <span>adversarial 1–7 · questionnaire 8–13 · 4 pivots</span>
+        <span>adversarial 1–7 · questionnaire 8–15 · 5 pivots</span>
         <span class="dot on"></span><span class="dot on"></span><span class="dot"></span>
       </div>
     </div>
 
     <div class="pad">
       <div class="kicker">THE EXPERIMENTS</div>
-      <h2 class="h2">Thirteen runs, <span class="amb">four pivots</span></h2>
+      <h2 class="h2">Fifteen runs, <span class="amb">five pivots</span></h2>
 
       <div class="exwrap">
         <div class="excol">
@@ -1209,7 +1246,7 @@
         </div>
 
         <div class="excol">
-          <div class="ch"><span>Questionnaire corpus</span><span class="cnt">08 – 13</span></div>
+          <div class="ch"><span>Questionnaire corpus</span><span class="cnt">08 – 15</span></div>
           <div class="exp">
             <div class="ei">08</div>
             <div><div class="et">Questionnaire corpus + RRF</div><div class="er">Query style <b>flips the winner</b> — BM25 scores <b>0.957</b> verbatim but <b>0.279</b> on paraphrases; tenant crowding an order of magnitude above the small set</div></div>
@@ -1234,10 +1271,18 @@
             <div class="ei">13</div>
             <div><div class="et">Distillation</div><div class="er">Student <span class="up">0.604</span> <b>beats the teacher</b> (0.561); served native at <b>~8ms</b> vs ~2500ms</div></div>
           </div>
+          <div class="exp">
+            <div class="ei">14</div>
+            <div><div class="et">HyDE — rewrite the query, both directions</div><div class="er">Question-space + original query <span class="up">0.719</span> — best yet; answer-space <b>never competes</b></div></div>
+          </div>
+          <div class="exp pivot">
+            <div class="ei">15</div>
+            <div><div class="et">Scale 47→232 paraphrases</div><div class="er"><b>Retracts</b> the 0.719 headline (<span class="dn">+0.023</span> oos, p≈0.24); library model beats reranker &amp; student at scale (p≤0.001)</div></div>
+          </div>
         </div>
       </div>
     </div>
-    <div class="pagenum">21 / 27</div>
+    <div class="pagenum">22 / 28</div>
   </section>
 
 <section class="slide" id="s22">
@@ -1252,12 +1297,12 @@
     <div class="res">
       <div class="res-head">
         <h2 class="res-title">The cost / quality <span class="amb">frontier</span></h2>
-        <div class="res-sub">retrieval quality vs. per-query cost<br><b>nDCG@10</b> · 47 paraphrase queries · tenant-filtered</div>
+        <div class="res-sub">retrieval quality vs. per-query cost<br><b>nDCG@10</b> · 47 paraphrase queries · tenant-filtered · revalidated at 232 (exp 15)</div>
       </div>
 
       <div class="legend">
         <span><span class="sw fast"></span>fast retrieval</span>
-        <span><span class="sw exp"></span>expensive rerank (~2500&nbsp;ms)</span>
+        <span><span class="sw exp"></span>expensive per query (~2–2.5&nbsp;s: rerank / LLM rewrite)</span>
         <span><span class="sw cheap"></span>cheap teacher-quality (ColBERT / distilled)</span>
       </div>
 
@@ -1324,27 +1369,33 @@
             <div class="bar fast" style="width:79.4%"><span class="val">0.635</span></div></div>
           <div class="cost"><span class="fast">fast</span></div>
         </div>
+        <div class="row">
+          <div class="label"><span class="idx">10</span>HyDE rewrite + library †</div>
+          <div class="track"><span class="gridline" style="left:50%"></span><span class="gridline" style="left:75%"></span>
+            <div class="bar exp" style="width:89.9%"><span class="val">0.719</span></div></div>
+          <div class="cost"><span class="exp">~2 s</span></div>
+        </div>
       </div>
 
       <div class="takeaway">
         <div class="ta">
           <div class="k">the jump</div>
-          <div class="v">Embedding the <b>question</b>, not the answer, lifts the hard case from <span class="n">0.505</span> to <b class="n">0.635</b> — the best arm tested, and it costs nothing. A structural win, not a bigger model.</div>
+          <div class="v">Embedding the <b>question</b>, not the answer, lifts the hard case from <span class="n">0.505</span> to <b class="n">0.635</b> — the best confirmed arm, and it costs nothing. A structural win, not a bigger model.</div>
         </div>
         <div class="ta">
           <div class="k teal">the cost story</div>
-          <div class="v">The <b>cross-encoder is worse than useless here.</b> Stacked on the library model it scores <span class="n">0.578</span> vs <b class="n">0.635</b> without it — at ~300× the cost. And on <b>verbatim</b> queries the whole stack is <b>redundant</b>: BM25 alone hits <span class="n">0.957</span> and nothing above it helps.</div>
+          <div class="v">Everything expensive disappoints. The cross-encoder stacked on the library model scores <span class="n">0.578</span> vs <b class="n">0.635</b> without it, at ~300× the cost. † And the HyDE rewrite's <span class="n">0.719</span> <b>failed out-of-sample confirmation</b> at 232 queries (<span class="n">+0.023</span>, p≈0.24) — though it does beat the equal-cost cross-encoder (p≈0.001).</div>
         </div>
       </div>
     </div>
-    <div class="pagenum">22 / 27</div>
+    <div class="pagenum">23 / 28</div>
   </section>
 
 <section class="slide" id="s23">
     <div class="topbar">
       <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>the through-lines</b></div>
       <div class="dotgrp">
-        <span>what held across all 13 runs</span>
+        <span>what held across all 15 runs</span>
         <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
       </div>
     </div>
@@ -1386,12 +1437,12 @@
           <div class="fn">05</div>
           <div>
             <div class="ft">The measurement infrastructure was the real product.</div>
-            <div class="fb">Leakage accounting, grouped CV, paired bootstrap, and chunk-level qrels are what <b>found</b> — and <b>killed</b> — findings that noisy metrics would have shipped.</div>
+            <div class="fb">Leakage accounting, grouped CV, paired bootstrap, and chunk-level qrels are what <b>found</b> — and <b>killed</b> — findings that noisy metrics would have shipped. Its latest kill: the HyDE rewrite's <span class="n">0.719</span> headline, retracted by scaling the query set <span class="n">47→232</span> (<span class="n">+0.023</span> out-of-sample, p≈0.24).</div>
           </div>
         </div>
       </div>
     </div>
-    <div class="pagenum">23 / 27</div>
+    <div class="pagenum">24 / 28</div>
   </section>
 
 <section class="slide" id="s24">
@@ -1410,7 +1461,7 @@
       <div class="ftcols">
         <div class="ftcol done">
           <div class="fk">validated — in depth</div>
-          <div class="fv">The <b>search-quality half</b> of the architecture: retrieval, ranking, chunking, distillation, and the measurement rig that keeps them honest.</div>
+          <div class="fv">The <b>search-quality half</b> of the architecture: retrieval, ranking, chunking, distillation, query-side rewriting (HyDE), and the measurement rig that keeps them honest.</div>
         </div>
         <div class="ftcol next">
           <div class="fk">needs the cluster</div>
@@ -1428,7 +1479,7 @@
     <div class="closer">
       <div class="cq">This study set out to <span class="amb">diagnose before optimising</span>, and not to fool itself with noisy results. That discipline is exactly what it kept having to apply to its own findings.</div>
     </div>
-    <div class="pagenum">24 / 27</div>
+    <div class="pagenum">25 / 28</div>
   </section>
 
 <section class="slide" id="s25">
@@ -1457,7 +1508,7 @@
         <div class="gterm"><div class="gt">Chunk / passage</div><div class="gdf">the slice of a document that actually gets embedded and retrieved.</div></div>
       </div>
     </div>
-    <div class="pagenum">25 / 27</div>
+    <div class="pagenum">26 / 28</div>
   </section>
 
 <section class="slide" id="s26">
@@ -1486,7 +1537,7 @@
         <div class="gterm"><div class="gt">qrels · CV · bootstrap</div><div class="gdf">the graded answer key / test-on-unseen-queries / resample to check a gain is real, not noise.</div></div>
       </div>
     </div>
-    <div class="pagenum">26 / 27</div>
+    <div class="pagenum">27 / 28</div>
   </section>
 
 <section class="slide" id="s27">
@@ -1504,6 +1555,7 @@
         <div class="gterm"><div class="gt">ColBERT</div><div class="gdf">the late-interaction model itself — a BERT that emits one vector per <b>token</b>; the name gets used for both the model and the method.</div></div>
         <div class="gterm"><div class="gt">BM25</div><div class="gdf">the standard lexical score: shared terms, weighted by rarity, damped for repetition and document length.</div></div>
         <div class="gterm"><div class="gt">RRF (reciprocal rank fusion)</div><div class="gdf">merge two ranked lists by adding <b>1/(k+rank)</b> from each — rank-based, so no score calibration and no training.</div></div>
+        <div class="gterm"><div class="gt">HyDE</div><div class="gdf">LLM-write the hypothetical document a query should match and embed <b>that</b>; which space you rewrite into (answer vs question) decides whether it helps.</div></div>
         <div class="gterm"><div class="gt">Grounding</div><div class="gdf">answering only from the retrieved context, never from what the model already knows.</div></div>
         <div class="gterm"><div class="gt">Faithfulness</div><div class="gdf">does the answer actually follow from the context it was handed — scored separately from whether it is correct.</div></div>
         <div class="gterm"><div class="gt">Hallucination</div><div class="gdf">confident output the retrieved context does not support.</div></div>
@@ -1515,7 +1567,7 @@
         <div class="gterm"><div class="gt">Loss function</div><div class="gdf">what training actually optimizes; pick one that doesn't match the task and a better model ranks worse.</div></div>
       </div>
     </div>
-    <div class="pagenum">27 / 27</div>
+    <div class="pagenum">28 / 28</div>
   </section>
 
 </div>

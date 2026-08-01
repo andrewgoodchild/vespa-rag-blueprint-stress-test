@@ -4,7 +4,7 @@ A small, adversarial benchmark for a multi-tenant RFP/questionnaire RAG pipeline
 modelled on the target architecture in [`../spec/target-architecture.md`](../spec/target-architecture.md)
 (a fictional scenario written for this study).
 
-> **Status: 13 experiments + 3 follow-ups executed** against the Vespa RAG
+> **Status: 15 experiments + 3 follow-ups executed** against the Vespa RAG
 > Blueprint deployed locally (adapted app in `../vespa-app/`). Chronology in
 > [../LABBOOK.md](../LABBOOK.md); full findings and per-arm scores in
 > [RESULTS.md](RESULTS.md); raw TREC runs in `results/`.
@@ -91,7 +91,7 @@ known failure mode of this specific architecture:
 python benchmark/evaluate.py run.txt --k 10
 ```
 
-## The questionnaire corpus (Experiments 8–13)
+## The questionnaire corpus (Experiments 8–15)
 
 The second corpus is 940 answers to a 261-question security questionnaire,
 from four fictional vendors. All of it is committed — corpus, query sets and
@@ -109,6 +109,8 @@ calls; the cached generations make a re-run free.
 | | Every record carries a `synthetic` field. The vendors, products and answers are invented; nothing here is a real security attestation, and the field is metadata rather than a schema field (`feed_rfq.py` ignores it). |
 | `queries-rfq.jsonl` | 232 verbatim queries: the stored question, asked exactly |
 | `queries-rfq-para.jsonl` | 47 paraphrases — the hard case, reworded to share little vocabulary |
+| `queries-rfq-para-all.jsonl` | 232 paraphrases — one twin per verbatim query (Exp 15's scaled set, built by `scale_para.py`; the 185 new ones carry cluster `questionnaire-para-new` for out-of-sample scoring) |
+| `queries-rfq-para*-hyde-*.jsonl` | HyDE-transformed query variants for Exps 14–15 (hypothetical answer / standard question, each alone and concatenated with the original; built by `hyde_generate.py`, raw generations in `hyde_generations.jsonl`) |
 | `qrels-rfq*.tsv` | structural judgments: same-tenant same-question 2, sibling sub-question 1 |
 | `distill_train.csv` | 47,000 cross-encoder-labelled pairs for Exp 13 |
 | `gap2_pairs.jsonl` | 195 contrastive fine-tuning pairs for Gap 2 |

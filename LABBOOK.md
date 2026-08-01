@@ -839,3 +839,191 @@ disagreement marks where a conclusion was corpus-dependent, not architectural.
 **Next.** A genuinely real, licensable RFP corpus spanning more than security
 compliance — the recursive lesson again: the small corpus was near-ceiling so a
 harder one was needed; this one is authored, so a real one is needed next.
+
+---
+
+## 2026-08-01 — Experiment 14: HyDE — transform the query, in both directions
+
+**Question.** The study has changed the *ranking* (Exps 9–13) and changed *what
+is indexed* (the library model, finding 22), but never the *query
+representation*. HyDE is the canonical query-side intervention: have an LLM
+write the hypothetical document that would answer the query, and embed that
+instead. Classic HyDE maps the query into **answer space** — which findings 22
+and 24 say is the wrong space for this corpus (near-duplicate answers, generic
+boilerplate as a cosine attractor). The symmetric variant maps it into
+**question space**: write the standard questionnaire wording the buyer is
+paraphrasing, then run the library model on it. Pre-registered predictions:
+answer-space HyDE lands near semantic's 0.505 and below the library model;
+question-space HyDE competitive with or above 0.635. Either outcome is
+informative — this is the library model's strongest challenger so far, because
+it uses the same insight (get into question space) with a general-purpose
+technique instead of a schema change.
+
+**Design.** `hyde_generate.py`: one LLM call per paraphrase query returns both
+a hypothetical vendor answer (80–120 words, first person plural, no company
+names) and the formal SIG/CAIQ-style wording of the question. The generator is
+`google/gemini-2.5-flash` — deliberately a *different model family* from the
+gpt-4o-mini that wrote the corpus, to blunt the same-generator register
+confound (limitation 1). Generations cached in `hyde_generations.jsonl`; four
+query files emitted with unchanged query_ids/tenants, so `qrels-rfq-para.tsv`
+and `evaluate.py` apply as-is: hypothetical answer alone, hypothetical question
+alone, and a query2doc-style concatenation of each (original paraphrase +
+hypothetical text). Answer variants run through the existing `semantic` arm,
+question variants through `q2q-semantic`; single sample per query at
+temperature 0.7 (not the paper's multi-sample embedding average — Vespa embeds
+`@query` server-side, so averaging would need client-side embedding). Runs in
+`results/exp14/`. Generation cost: mean **1.99 s**, max 2.78 s per query —
+HyDE lives in the cross-encoder's latency class (~2.5 s/q), not the fast class.
+
+**Results (nDCG@10, 47 paraphrases, tenant-filtered; paired bootstrap over
+per-query nDCG vs each arm's own baseline, 10k resamples, two-sided).**
+
+| arm | recall@10 | MRR@10 | nDCG@10 | delta | p |
+|---|---|---|---|---|---|
+| semantic — embed the answer (Exp 8 baseline) | 0.617 | 0.475 | 0.505 | — | — |
+| HyDE hypothetical answer | 0.741 | 0.493 | 0.538 | +0.033 | 0.63 |
+| HyDE answer + original query | 0.773 | 0.558 | 0.604 | +0.099 | 0.084 |
+| q2q-semantic — library model (Exp 10 baseline) | 0.684 | 0.649 | 0.635 | — | — |
+| HyDE hypothetical question | 0.720 | 0.628 | 0.640 | +0.005 | 0.93 |
+| **HyDE question + original query** | **0.777** | **0.725** | **0.719** | +0.084 | 0.064 |
+
+Cross-class comparison: HyDE question+query vs the cross-encoder over library
+recall (ce-q2q 0.578, the best reranker, same ~2.5 s/q latency class):
+**+0.141, p≈0.007**. And answer-space HyDE at its best still loses to the plain
+library model with no LLM at all: 0.604 vs 0.635 (p≈0.65).
+
+**Finding 34 — the target space matters more than the technique, again.**
+Answer-space HyDE spends an LLM call to move the query toward answer prose and
+tops out at 0.604 — below a zero-cost schema change into question space
+(0.635). The prediction from finding 22 held: an LLM call into the wrong space
+is worth less than a field change into the right one. Finding 24's mechanism
+also shows up on the query side — the hypothetical answer is exactly the
+generic near-duplicate prose the corpus is full of, which is why recall jumps
+(0.617 → 0.741) while MRR barely moves (0.475 → 0.493): it pulls in more
+same-topic material but cannot separate the four vendors' near-identical
+answers.
+
+**Finding 35 — normalise-and-keep: paraphrase + reconstructed standard wording
+is the best retrieval number on the paraphrase set (0.719), suggestive but not
+confirmed at 47 queries (p≈0.064).** The hypothetical question *alone* only
+ties the library model (0.640 vs 0.635): the LLM reliably recovers the formal
+register but sometimes reconstructs the *wrong control*, and then the query is
+thrown entirely. Concatenating the original paraphrase hedges that failure —
+the reconstruction supplies the vocabulary the paraphrase lacks, the paraphrase
+keeps the intent the reconstruction sometimes loses. Recall@10 rises 0.684 →
+0.777, which attacks finding 27's binding constraint (gold never surfacing in
+the top-10) — the one thing no reranker can fix, and the reason this beats
+every reranker tested (vs ce-q2q: +0.141, p≈0.007, at the same latency). Exp
+6's lesson applies before celebrating: +0.084 at n=47 with p≈0.064 is exactly
+the shape of result that has died at scale in this study before. It needs a
+scaled paraphrase set before it graduates from suggestive to confirmed.
+
+**Caveats.** All three texts in play — stored question, paraphrase,
+hypothetical reconstruction — are LLM prose; a different generator family
+(gemini vs gpt-4o-mini) blunts but does not remove the affinity confound, and a
+real buyer's wording may sit farther from what an LLM reconstructs than these
+paraphrases do. Single sample per query, one generator, one prompt. 47 queries.
+Query cost is ~2 s of LLM generation on top of a fast Vespa query — cacheable
+across repeat questions, and generation could overlap other work, but it is
+not the fast class the library model lives in. Verbatim set not run: BM25 is
+at 0.957 there and a query rewrite can only dilute exact overlap.
+
+> **Superseded in part by Exp 15 (same day).** The scaled paraphrase set did to
+> finding 35 what Exp 6 did to the pairwise claim: the +0.084 edge over the
+> library model attenuated to +0.023 out-of-sample (p≈0.24) and is **not
+> confirmed**. Findings 34 and the ce-comparison half of 35 survived. See the
+> Exp 15 entry below.
+
+---
+
+## 2026-08-01 — Experiment 15: scale the paraphrase set 47 → 232 (revalidate finding 35)
+
+**Question.** Finding 35's headline — normalise-and-keep at 0.719, +0.084 over
+the library model — sat at p≈0.064 on 47 queries, exactly the shape of result
+Exp 6 killed at scale. Does it survive a bigger instrument? The original 47
+paraphrases also formed the hypothesis, so the honest test is on queries that
+played no part in it.
+
+**Design.** `scale_para.py` gives every verbatim query a paraphrase twin:
+232 total — the original 47 copied through byte-identical, plus 185 new ones
+generated with `build_synthetic_rfq_corpus.gen_paraphrase` **unchanged** (same
+model, same prompt, same temperature — the paraphrase prompt is the corpus's
+difficulty dial and a new prompt would silently move it). New queries carry
+cluster `questionnaire-para-new` so the out-of-sample subset scores
+separately; structural qrels regenerate under the same rule and reproduce the
+original 47's lines exactly (asserted in the script). HyDE texts for the 185
+via `hyde_generate.py` (same generator, mean 1.97 s/query). All fast arms plus
+ce-q2q and the student re-run on the full 232 (`results/exp15/`); ColBERT and
+the other two cross-encoder variants were not re-run. Trained-component evals
+(Gap 2 fine-tune) must keep using the original 47 — the scaled set overlaps
+their training question_ids.
+
+**Results (nDCG@10, tenant-filtered).**
+
+| arm | orig-47 | new-185 (out-of-sample) | full-232 |
+|---|---|---|---|
+| BM25 | 0.312* | 0.354 | 0.346 |
+| semantic | 0.505 | 0.604 | 0.584 |
+| hybrid | 0.416* | 0.502 | 0.484 |
+| RRF | 0.480* | 0.555 | 0.539 |
+| **q2q-semantic (library model)** | 0.635 | 0.766 | **0.740** |
+| distilled student | 0.556* | 0.684 | 0.658 |
+| ce-q2q (cross-encoder) | 0.578 | 0.710 | 0.683 |
+| HyDE answer | 0.538 | 0.577 | 0.569 |
+| HyDE answer + query | 0.604 | 0.637 | 0.631 |
+| HyDE question | 0.640 | 0.693 | 0.682 |
+| HyDE question + query | 0.719 | 0.789 | 0.775 |
+
+Paired bootstrap (10k resamples, two-sided):
+
+| comparison | full-232 | new-185 only |
+|---|---|---|
+| HyDE q+query vs q2q | +0.035, p≈0.046 | **+0.023, p≈0.24** |
+| HyDE question vs q2q | −0.058, p≈0.015 | −0.073, p≈0.003 |
+| HyDE q+query vs ce-q2q | +0.091, p<0.0001 | +0.079, p≈0.001 |
+| HyDE ans+query vs q2q | −0.109, p<0.0001 | −0.129, p<0.0001 |
+| HyDE q+query vs HyDE question | +0.093, p<0.0001 | +0.096, p<0.0001 |
+| q2q vs ce-q2q | +0.056, p≈0.001 | — |
+| q2q vs student | +0.081, p<0.0001 | — |
+
+**Finding 36 — scale strikes again: finding 35's headline does not survive
+out-of-sample confirmation.** On the 185 queries that played no part in
+forming the hypothesis, the normalise-and-keep edge over the library model is
++0.023 at p≈0.24. The full-232 p≈0.046 is dragged under 0.05 by the original
+47 — the queries the claim was built on — which is exactly the in-sample
+flattery this study keeps re-learning to distrust (Exp 6: +0.006 at 19q died
+at 69q; the "confirmed 3×" pairwise claim died at Exp 13). Demoted from "best
+number in the study" to *unconfirmed ~+0.02–0.03 tendency at ~2 s/query*. What
+**did** survive, all significant out-of-sample: (1) HyDE-into-question-space
+**beats the cross-encoder at the same latency** (+0.079, p≈0.001) — if you are
+paying LLM-class latency per query, rewrite the query rather than rerank the
+answers; (2) **pure rewriting is actively harmful** (−0.073, p≈0.003) — the
+reconstruction throws away intent often enough that q2q on the raw paraphrase
+beats q2q on the "cleaned-up" one; keeping the original query is worth +0.096
+(p<0.0001); (3) **answer-space HyDE never competes** (−0.129 vs q2q,
+p<0.0001) — finding 34 confirmed at scale. The practical recommendation is
+unchanged and now better-supported: the library model, alone, on the raw
+query.
+
+**Finding 37 — the library model's dominance replicates at scale, and the
+scaled instrument exposed its own drift.** On 232 queries q2q (0.740)
+significantly beats the cross-encoder stacked on it (0.683, p≈0.001) and the
+distilled student (0.658, p<0.0001) — findings 22/24 graduate from 47-query
+observations to confirmed results. Two instrument notes recorded honestly:
+*(a)* every arm scores higher on the new 185 than on the original 47 (q2q
+0.766 vs 0.635, ~3σ against sampling noise) — same prompt, same nominal
+model, five days apart, yet the new paraphrases run measurably easier
+(content-word Jaccard to the original question 0.077 vs 0.070). The
+difficulty dial of limitation 1 not only exists, it **drifts** between
+generation runs; cross-set absolute comparisons are unsafe, paired
+within-query comparisons unaffected. *(b)* re-running the committed lexical
+arms reproduces the semantic numbers exactly but shifts BM25/hybrid/RRF by
+±0.01–0.03 on the same queries and qrels — the live index's BM25 scores
+differ from whatever state produced the July run files (a re-feed since is
+the likely cause). All Exp 15 comparisons are within a single index state.
+
+**Caveats.** The out-of-sample subset shares the paraphrase generator with the
+original set, so "out-of-sample" means new queries, not a new distribution;
+ColBERT/ce-semantic/ce-hybrid not re-run at scale; the drift observation is
+n=1 (one regeneration event, cause unresolved — provider routing, model
+update, or an unlucky original sample).

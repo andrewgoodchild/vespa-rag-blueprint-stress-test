@@ -1,4 +1,4 @@
-# vespa-rag-blueprint-stress-test — 13 experiments on multi-tenant RFP retrieval
+# vespa-rag-blueprint-stress-test — 15 experiments on multi-tenant RFP retrieval
 
 An empirical study of a retrieval architecture: deploy the
 [Vespa RAG Blueprint](https://docs.vespa.ai/en/learn/tutorials/rag-blueprint.html)
@@ -32,7 +32,7 @@ and everything reproduces with no downloads.
 as a unit test for known failure modes — one query cluster per documented way
 this architecture breaks.
 
-**Questionnaire corpus** (Exps 8–13): 940 answers to a 261-question security
+**Questionnaire corpus** (Exps 8–15): 940 answers to a 261-question security
 questionnaire, from four fictional vendors — Tanager Geospatial, Kestrel Cloud,
 Orrery Software and Pellucid Data. The control taxonomy (17 domains, 197
 controls) is ours, the questions are written to it, and the answers are
@@ -62,7 +62,7 @@ rather than a clean negative.
 | path | contents |
 |---|---|
 | [`spec/target-architecture.md`](spec/target-architecture.md) | The fictional scenario and target stack, mapped onto blueprint features |
-| [`LABBOOK.md`](LABBOOK.md) | Chronological lab notebook — question, design, results, conclusions per experiment (Exps 1–13) |
+| [`LABBOOK.md`](LABBOOK.md) | Chronological lab notebook — question, design, results, conclusions per experiment (Exps 1–15) |
 | [`benchmark/RESULTS.md`](benchmark/RESULTS.md) | Full findings (1–27) with per-query diagnostics |
 | [`benchmark/`](benchmark/README.md) | Both datasets in full — 39 adversarial docs and the 940-answer questionnaire corpus — plus query sets, graded TREC qrels, scorer, runners, training scripts and every raw run |
 | [`vespa-app/`](vespa-app/) | The blueprint app adapted for local Docker: tenant field, stage-isolation profiles, paragraph-chunked `docp` and real-data `rfq` schemas, cross-encoder + ColBERT + RRF rank profiles |
@@ -88,6 +88,7 @@ wording):
 | semantic (embed the answer) | 0.505 | fast |
 | ColBERT late interaction | 0.517 | ~60 ms/q |
 | cross-encoder rerank | 0.561–0.578 | ~2.5 s/q |
+| HyDE rewrite into question space + original query | 0.719 | ~2 s/q |
 | **q2q-semantic (embed the question — the "library model")** | **0.635** | fast |
 
 The cheapest arm wins. Matching the incoming question against the *stored
@@ -96,6 +97,16 @@ a cross-encoder costing ~300× more per query — and the cross-encoder applied 
 top of it makes things *worse* (0.578 vs 0.635), because reranking on answer
 text reintroduces exactly the near-duplicate confusion the library model
 avoids.
+
+The one arm that outscored it — a HyDE-style LLM rewrite of the query into the
+standard questionnaire wording, concatenated with the original (0.719) — was
+then put through the study's own discipline: scaling the paraphrase set 47 → 232
+(Exp 15) attenuated its edge to **+0.023 out-of-sample (p≈0.24), unconfirmed**,
+while the library model's wins over the cross-encoder and the distilled student
+replicated with significance on 232 queries (p≤0.001). What the rewrite did
+prove: at the same ~2 s/query cost it beats the cross-encoder outright
+(p≈0.001), and rewriting *without* keeping the original query is actively
+harmful (−0.073, p≈0.003).
 
 On verbatim re-runs the ordering inverts completely: BM25 scores **0.957**,
 ahead of semantic's 0.915, because the query *is* the stored question. In fact
@@ -164,6 +175,14 @@ cross-tenant leaks per arm.
     ship:** leakage accounting, grouped cross-validation, paired bootstrap,
     chunk-level qrels, a scaled query set. The evaluation harness, not the
     ranking model, was the high-leverage artifact.
+13. **Query rewriting (HyDE) validated the thesis, then obeyed the house
+    rule.** Rewriting the query into *answer* space never competes; rewriting
+    it into *question* space with the original kept alongside produced the
+    study's best single number (0.719 on 47 queries) — which attenuated to an
+    unconfirmed +0.023 (p≈0.24) on 185 out-of-sample paraphrases. The
+    survivors, all significant at scale: the rewrite beats the equal-cost
+    cross-encoder, discarding the original query is actively harmful, and the
+    library model's edge over every reranker is confirmed on 232 queries.
 
 ## Reproducing
 
@@ -187,7 +206,7 @@ docker run --detach --name rag-blueprint --hostname rag-blueprint \
 python3 benchmark/run_queries.py --outdir runs
 python3 benchmark/evaluate.py runs/hybrid.txt --k 10
 
-# 4. Questionnaire corpus (Exps 8-13): feed, run every arm, score them all
+# 4. Questionnaire corpus (Exps 8-15): feed, run every arm, score them all
 python3 benchmark/feed_rfq.py --purge
 python3 benchmark/run_rfq.py --queries queries-rfq-para.jsonl --outdir benchmark/results/exp8
 python3 benchmark/score_rfq.py          # the tables in RESULTS.md
@@ -198,6 +217,15 @@ python3 benchmark/train_pairwise.py   --outdir benchmark/results/exp4
 python3 benchmark/distill_collect.py  # ~40 min: teacher-labels 47k pairs
 python3 benchmark/distill_pairwise.py # trains + writes student_expr.json
 python3 benchmark/gap2_finetune.py    # contrastive fine-tune, offline
+
+# 6. HyDE query rewriting + the scaled paraphrase set (Exps 14-15)
+#    the generated query files are committed, so these two need no API key:
+python3 benchmark/run_rfq.py --queries queries-rfq-para-all-hyde-q-cat.jsonl \
+  --tag para-all-hydeqcat --arms q2q-semantic --outdir benchmark/results/exp15
+python3 benchmark/run_rfq.py --queries queries-rfq-para-all.jsonl \
+  --tag para-all --outdir benchmark/results/exp15
+#    regenerating the rewrites / scaling further needs OPENROUTER_API_KEY:
+#    hyde_generate.py --queries <set>.jsonl, scale_para.py
 ```
 
 The questionnaire corpus is committed, so steps 4–5 need no data preparation.

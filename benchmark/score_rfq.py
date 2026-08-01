@@ -15,27 +15,47 @@ from pathlib import Path
 
 HERE = Path(__file__).parent
 
-# (arm label, run-file stem, results subdir)
+# (arm label, run-file stem); run files are located by scanning RESULT_DIRS
+# for {set}-{stem}-filtered.txt, so an arm re-run on a new query set (e.g. the
+# scaled paraphrase set in exp15) is picked up without touching this table.
 ARMS = [
-    ("BM25 (lexical)", "bm25", "exp8"),
-    ("semantic (embed the answer)", "semantic", "exp8"),
-    ("hybrid — blueprint weights", "hybrid", "exp8"),
-    ("RRF fusion (untrained)", "rrf", "exp8"),
-    ("q2q-semantic — the library model", "q2q-semantic", "exp8"),
-    ("q2q-RRF", "q2q-rrf", "exp8"),
-    ("ColBERT late interaction", "colbert", "exp11"),
-    ("cross-encoder over semantic", "ce-semantic", "exp9"),
-    ("cross-encoder over hybrid", "ce-hybrid", "exp9"),
-    ("cross-encoder over library recall", "ce-q2q", "exp9"),
-    ("distilled student (served natively)", "student", "exp13"),
-    ("semantic — int8 binary vectors", "semantic-binary", "gap3"),
-    ("semantic — float32 vectors", "semantic-float", "gap3"),
+    ("BM25 (lexical)", "bm25"),
+    ("semantic (embed the answer)", "semantic"),
+    ("hybrid — blueprint weights", "hybrid"),
+    ("RRF fusion (untrained)", "rrf"),
+    ("q2q-semantic — the library model", "q2q-semantic"),
+    ("q2q-RRF", "q2q-rrf"),
+    ("ColBERT late interaction", "colbert"),
+    ("cross-encoder over semantic", "ce-semantic"),
+    ("cross-encoder over hybrid", "ce-hybrid"),
+    ("cross-encoder over library recall", "ce-q2q"),
+    ("distilled student (served natively)", "student"),
+    ("semantic — int8 binary vectors", "semantic-binary"),
+    ("semantic — float32 vectors", "semantic-float"),
+    # Exps 14-15: HyDE query transformation — paraphrase sets only (~2 s LLM
+    # call per query at generation time; see hyde_generate.py)
+    ("HyDE hypothetical answer", "hydeans-semantic"),
+    ("HyDE answer + query", "hydeanscat-semantic"),
+    ("HyDE hypothetical question", "hydeq-q2q-semantic"),
+    ("HyDE question + query", "hydeqcat-q2q-semantic"),
 ]
+
+RESULT_DIRS = ["exp8", "exp9", "exp11", "exp13", "exp14", "exp15", "gap3"]
 
 SETS = {
     "para": ("queries-rfq-para.jsonl", "qrels-rfq-para.tsv"),
+    "para-all": ("queries-rfq-para-all.jsonl", "qrels-rfq-para-all.tsv"),
     "verbatim": ("queries-rfq.jsonl", "qrels-rfq.tsv"),
 }
+
+
+def find_run(setname, stem, filtered=True):
+    name = f"{setname}-{stem}{'-filtered' if filtered else ''}.txt"
+    for sub in RESULT_DIRS:
+        p = HERE / "results" / sub / name
+        if p.exists():
+            return p
+    return HERE / "results" / "absent" / name
 
 
 def score(run, queries, qrels, k):
@@ -64,37 +84,37 @@ def main():
     res = HERE / "results"
 
     print(f"### Tenant-filtered, nDCG@{args.k}\n")
-    print("| arm | paraphrase (47q) | verbatim (232q) |")
-    print("|---|---|---|")
-    for label, stem, sub in ARMS:
+    print("| arm | paraphrase (47q) | scaled paraphrase (232q) | verbatim (232q) |")
+    print("|---|---|---|---|")
+    for label, stem in ARMS:
         row = []
-        for s in ("para", "verbatim"):
+        for s in ("para", "para-all", "verbatim"):
             q, qr = SETS[s]
-            r = score(res / sub / f"{s}-{stem}-filtered.txt", q, qr, args.k)
+            r = score(find_run(s, stem), q, qr, args.k)
             row.append(f"{r[2]:.3f}" if r else "—")
-        print(f"| {label} | {row[0]} | {row[1]} |")
+        print(f"| {label} | {row[0]} | {row[1]} | {row[2]} |")
 
     print(f"\n### What the tenant filter is worth (paraphrase set, nDCG@{args.k})\n")
     print("| arm | filtered | unfiltered | delta | cross-tenant leaks |")
     print("|---|---|---|---|---|")
     q, qr = SETS["para"]
-    for label, stem, sub in ARMS:
-        f = score(res / sub / f"para-{stem}-filtered.txt", q, qr, args.k)
-        u = score(res / sub / f"para-{stem}.txt", q, qr, args.k)
+    for label, stem in ARMS:
+        f = score(find_run("para", stem), q, qr, args.k)
+        u = score(find_run("para", stem, filtered=False), q, qr, args.k)
         if not f or not u:
             continue
         print(f"| {label} | {f[2]:.3f} | {u[2]:.3f} | +{f[2]-u[2]:.3f} | {u[3]} |")
 
     print(f"\n### Full metrics, tenant-filtered (recall@{args.k} / MRR@{args.k} / nDCG@{args.k})\n")
-    print("| arm | paraphrase | verbatim |")
-    print("|---|---|---|")
-    for label, stem, sub in ARMS:
+    print("| arm | paraphrase | scaled paraphrase | verbatim |")
+    print("|---|---|---|---|")
+    for label, stem in ARMS:
         row = []
-        for s in ("para", "verbatim"):
+        for s in ("para", "para-all", "verbatim"):
             q, qr = SETS[s]
-            r = score(res / sub / f"{s}-{stem}-filtered.txt", q, qr, args.k)
+            r = score(find_run(s, stem), q, qr, args.k)
             row.append(f"{r[0]:.3f} / {r[1]:.3f} / {r[2]:.3f}" if r else "—")
-        print(f"| {label} | {row[0]} | {row[1]} |")
+        print(f"| {label} | {row[0]} | {row[1]} | {row[2]} |")
 
 
 if __name__ == "__main__":
