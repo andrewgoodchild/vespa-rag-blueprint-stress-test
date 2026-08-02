@@ -41,6 +41,13 @@ ARMS = {
     "ce-q2q":       (NN_TITLE, "ce-q2q", True),
     # the distilled student, served natively — no cross-encoder in the path
     "student":      (f"(userInput(@query) or {NN_TITLE} or {NN_CHUNKS})", "student-pairwise", True),
+    # Gap 5: the library model served with base / fine-tuned MiniLM embedders
+    "q2q-mini": ('({label:"t", targetHits:100}nearestNeighbor(title_emb_mini, mini_embedding))', "q2q-mini", False),
+    "q2q-ft":   ('({label:"t", targetHits:100}nearestNeighbor(title_emb_ftmini, mini_embedding))', "q2q-ft", False),
+    # Gap 7: prefix symmetry — identical float-cosine scoring over the whole
+    # tenant; only the document-side nomic prefix differs between the two.
+    "q2q-float": ("true", "q2q-float", True),
+    "q2q-sym":   ("true", "q2q-sym", True),
 }
 
 # The blueprint's shipped first-phase coefficients. The `hybrid` arm exists to
@@ -98,6 +105,9 @@ def run_arm(arm, queries, filtered, hits):
             params["timeout"] = "60s"
         if profile == "student-pairwise":
             params["input.query(qt)"] = "embed(colbert, @query)"
+        if profile in ("q2q-mini", "q2q-ft"):
+            embedder = "minibase" if profile == "q2q-mini" else "minift"
+            params["input.query(mini_embedding)"] = f"embed({embedder}, @query)"
         resp = search(params)
         if "_error" in resp:
             errors += 1

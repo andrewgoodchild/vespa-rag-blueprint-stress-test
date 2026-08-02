@@ -75,6 +75,29 @@ schema rfq {
         indexing: input title | embed nomicmb | attribute
     }
 
+    # Gap 7: the stored question embedded with the QUERY prefix (search_query:)
+    # instead of the document prefix — the symmetric treatment for the
+    # symmetric question-vs-question task.
+    field title_emb_sym type tensor<float>(x[768]) {
+        indexing: input title | embed nomicsym | attribute
+    }
+
+    # Gap 5: the stored question embedded with base / fine-tuned MiniLM,
+    # so the library model can be served with each and compared to nomic.
+    field title_emb_mini type tensor<float>(x[384]) {
+        indexing: input title | embed minibase | attribute | index
+        attribute {
+            distance-metric: angular
+        }
+    }
+
+    field title_emb_ftmini type tensor<float>(x[384]) {
+        indexing: input title | embed minift | attribute | index
+        attribute {
+            distance-metric: angular
+        }
+    }
+
     field chunk_emb_f type tensor<float>(chunk{}, x[768]) {
         indexing: input chunks | embed nomicmb | attribute
     }

@@ -204,8 +204,13 @@
     font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--dim)}
   .axis .tick::after{content:"";position:absolute;left:50%;bottom:-1px;width:1px;height:6px;background:var(--line)}
   .row{display:flex;align-items:center;height:61px;border-bottom:1px solid rgba(51,46,39,.5)}
-  /* ten rows since the HyDE arm joined — tighter rows keep the chart clear of the takeaway */
-  #s22 .row{height:52px}
+  /* twelve rows since the follow-up arms joined — tighter rows keep the
+     chart clear of the takeaway */
+  #s22 .row{height:47px}
+  /* arms whose edge over the free library model is not statistically
+     confirmed render dimmed, so point estimates don't outshine the winner */
+  .bar.unconf{opacity:.5}
+  .bar.unconf .val{opacity:.9}
   .row.hi{background:linear-gradient(90deg,rgba(232,161,58,.09),rgba(232,161,58,0) 70%)}
   .row .label{width:430px;padding-right:28px;text-align:right;
     font-family:'JetBrains Mono',monospace;font-size:20px;color:var(--ink);letter-spacing:-.01em}
@@ -363,14 +368,15 @@
           </div>
           <div class="arrow">→</div>
           <div class="figure to">
-            <span class="cap">library model</span>
-            <span class="num">0.635</span>
+            <span class="cap">library model · symmetric</span>
+            <span class="num">0.703</span>
           </div>
         </div>
         <div class="metricmeta">
-          <span class="delta">+26%</span>
+          <span class="delta">+39%</span>
           <span class="metric"><b>nDCG@10</b> on the hard case</span>
           <span class="metric">940 questionnaire answers</span>
+          <span class="metric">best <b>confirmed</b> arm — an LLM rewrite hit <b>0.719</b>, then failed replication at scale</span>
         </div>
       </div>
     </div>
@@ -383,14 +389,14 @@
       <span class="tag">ColBERT</span>
       <span class="tag">distillation</span>
     </div>
-    <div class="pagenum">01 / 28</div>
+    <div class="pagenum">01 / 29</div>
   </section>
 
   <section class="slide" id="s2">
     <div class="topbar">
       <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>what's in here</b></div>
       <div class="dotgrp">
-        <span>28 slides · concepts, evidence, reference</span>
+        <span>29 slides · concepts, evidence, reference</span>
         <span class="dot on"></span><span class="dot"></span><span class="dot"></span>
       </div>
     </div>
@@ -426,7 +432,7 @@
       </div>
       <div class="footnote" style="margin-top:auto;padding-bottom:40px"><b>Reference:</b> a three-page glossary at the back — 36 terms, every piece of vocabulary this deck uses.</div>
     </div>
-    <div class="pagenum">02 / 28</div>
+    <div class="pagenum">02 / 29</div>
   </section>
 
 <section class="slide" id="s3">
@@ -488,7 +494,7 @@
 
       <div class="footnote"><b>pgvector as the reference point</b>&nbsp;&nbsp;·&nbsp;&nbsp;it is the common default, and the comparison is about what one engine does in one query — not product quality</div>
     </div>
-    <div class="pagenum">03 / 28</div>
+    <div class="pagenum">03 / 29</div>
   </section>
 
 <section class="slide" id="s4">
@@ -561,7 +567,7 @@
         <div class="txt">No tenant concept, no cross-encoder, no late interaction — <b>those are this study's additions</b>.</div>
       </div>
     </div>
-    <div class="pagenum">04 / 28</div>
+    <div class="pagenum">04 / 29</div>
   </section>
 
 <section class="slide" id="s5">
@@ -631,7 +637,7 @@
         <div class="pq">"Diagnose before you optimise, ship incrementally, don't fool yourself with noisy results."</div>
       </div>
     </div>
-    <div class="pagenum">05 / 28</div>
+    <div class="pagenum">05 / 29</div>
   </section>
 
 <section class="slide" id="s6">
@@ -666,7 +672,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">06 / 28</div>
+    <div class="pagenum">06 / 29</div>
   </section>
 
 <section class="slide" id="s7">
@@ -701,7 +707,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">07 / 28</div>
+    <div class="pagenum">07 / 29</div>
   </section>
 
 <section class="slide" id="s8">
@@ -732,11 +738,11 @@
         </div>
         <div class="saw">
           <div class="cl">What we saw</div>
-          <div class="cb">On reworded questions, untrained RRF (<span class="n">0.489</span>) beat the blueprint's trained linear ranker (<span class="n">0.436</span>). <b>Structure beat a learned model</b> — a recurring theme.</div>
+          <div class="cb">On reworded questions, untrained RRF (<span class="n">0.489</span>) beat the blueprint's trained linear ranker (<span class="n">0.436</span>). <b>Structure beat a learned model</b> — a recurring theme. But fusion has limits: RRF over the two <i>best</i> arms never beat the better parent — fusing strong arms that mostly agree can only blur the stronger one.</div>
         </div>
       </div>
     </div>
-    <div class="pagenum">08 / 28</div>
+    <div class="pagenum">08 / 29</div>
   </section>
 
 <section class="slide" id="s9">
@@ -771,7 +777,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">09 / 28</div>
+    <div class="pagenum">09 / 29</div>
   </section>
 
 <section class="slide" id="s10">
@@ -806,7 +812,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">10 / 28</div>
+    <div class="pagenum">10 / 29</div>
   </section>
 
 <section class="slide" id="s11">
@@ -841,7 +847,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">11 / 28</div>
+    <div class="pagenum">11 / 29</div>
   </section>
 
 <section class="slide" id="s12">
@@ -872,11 +878,11 @@
         </div>
         <div class="saw">
           <div class="cl">What we saw</div>
-          <div class="cb">Lifted the hard case <span class="n">0.505 → 0.576</span> at <span class="n">~2.5 s</span>/query on CPU — a real gain, but beaten outright by the library model (<span class="n">0.635</span>), which costs nothing. The <b>"expensive cross-encoder"</b> stage: justified, but costly.</div>
+          <div class="cb">Lifted the hard case <span class="n">0.505 → 0.576</span> at <span class="n">~2.5 s</span>/query on CPU — a real gain, but beaten outright by the library model (<span class="n">0.635</span>), which costs nothing. A follow-up swapped in a <b>modern</b> reranker (bge-v2-m3): categorically better than the 2020 model (<span class="n">+0.082</span>, p&lt;0.0001) — and <b>still never significantly above the free library model</b>.</div>
         </div>
       </div>
     </div>
-    <div class="pagenum">12 / 28</div>
+    <div class="pagenum">12 / 29</div>
   </section>
 
 <section class="slide" id="s13">
@@ -911,7 +917,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">13 / 28</div>
+    <div class="pagenum">13 / 29</div>
   </section>
 
 <section class="slide" id="s14">
@@ -946,7 +952,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">14 / 28</div>
+    <div class="pagenum">14 / 29</div>
   </section>
 
 <section class="slide" id="s15">
@@ -977,11 +983,47 @@
         </div>
         <div class="crow saw">
           <div class="cl">What we saw</div>
-          <div class="cb">Fine-tuning a small MiniLM on <span class="n">195</span> generated paraphrase pairs lifted it <span class="n">0.591 → 0.622</span> (<span class="n">+0.031</span>) — the <b>only trained component to beat its zero-shot baseline</b> (the rankers all tied). Fixing the representation matched the actual failure mode: vocabulary mismatch.</div>
+          <div class="cb">Fine-tuning a small MiniLM on <span class="n">195</span> generated paraphrase pairs lifted it <span class="n">0.591 → 0.622</span> (<span class="n">+0.031</span>) — the <b>only trained component to beat its zero-shot baseline</b> (the rankers all tied). Served in Vespa, though, the tuned MiniLM (<span class="n">0.595</span>) still loses to the bigger zero-shot nomic embedder (<span class="n">0.635</span>): <b>embedder choice dominates embedder fine-tuning</b> — pick the strongest base model, then tune that.</div>
         </div>
       </div>
     </div>
-    <div class="pagenum">15 / 28</div>
+    <div class="pagenum">15 / 29</div>
+  </section>
+
+<section class="slide" id="s15b">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>the embedder — decoded</b></div>
+      <div class="dotgrp">
+        <span>representation</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot on"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">REPRESENTATION</div>
+      <h2 class="h2">The embedder: <span class="amb">config</span> before <span class="tl">shopping</span></h2>
+      <p class="lede">The winning setup is <b>"nomic modernbert-embed-base, query prefix on both sides, float title vectors."</b> Decoded, term by term:</p>
+
+      <div class="concept">
+        <div class="crow">
+          <div class="cl">nomic modernbert-<br>embed-base</div>
+          <div class="cb">The <b>embedding model</b> — a small English bi-encoder that turns text into a <span class="n">768</span>-number vector where similar meanings land near each other. It ships with the blueprint, runs <b>inside Vespa</b>, and every semantic score in this study comes from it.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">query prefix,<br>both sides</div>
+          <div class="cb">Nomic is <b>task-conditioned</b>: you prepend <code style="color:var(--amber)">search_query:</code> to searches and <code style="color:var(--amber)">search_document:</code> to stored text, and the model embeds them differently — tuned for short-question-vs-long-document retrieval. But the library model matches <b>question against question</b> — a <b>symmetric</b> task with no "document" side — so both sides get the <i>query</i> prefix. One line of config.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">float title<br>vectors</div>
+          <div class="cb">The stored question's vector kept at full <b>32-bit precision</b>, instead of the blueprint's default 1-bit binarization (<span class="n">768</span> floats squeezed into <span class="n">96</span> bytes). Binarization trades accuracy for memory — worth it for millions of chunk vectors, pointless for <b>one small vector per stored question</b> (~3 KB × 940 docs).</div>
+        </div>
+        <div class="crow saw">
+          <div class="cl">What we saw</div>
+          <div class="cb">Symmetric prefixes <span class="n">+0.039</span> (p&lt;0.0001, held out-of-sample — the first win since the tenant filter to clear that bar); float titles <span class="n">+0.023</span>. Together: <span class="n">0.635 → 0.703</span>, free. The bake-off verdict: this <b>beat swapping models</b> — bge-m3 lost outright (<span class="n">−0.039</span>, p≈0.002), Qwen3-0.6B merely tied. <b>Condition the embedder you have before shopping for a new one.</b></div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">16 / 29</div>
   </section>
 
 <section class="slide" id="s16">
@@ -1016,7 +1058,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">16 / 28</div>
+    <div class="pagenum">17 / 29</div>
   </section>
 
 <section class="slide" id="s17">
@@ -1047,11 +1089,11 @@
         </div>
         <div class="crow saw">
           <div class="cl">What we saw</div>
-          <div class="cb">Matching question→question lifted single-vector semantic <span class="n">0.505 → 0.635</span>, same embedder — only the indexed field changed. <b>The best arm in the whole study, and free.</b> This is why real RFP tools are built around <b>answer libraries</b>, not raw-document RAG.</div>
+          <div class="cb">Matching question→question lifted single-vector semantic <span class="n">0.505 → 0.635</span>, same embedder — only the indexed field changed. Then one more free step: it's a <b>symmetric</b> task, and embedding both sides with the <b>query prefix</b> (+ float title vectors) lifts it to <span class="n">0.703</span> (p&lt;0.0001, held out-of-sample). Blended verbatim+paraphrase workload: <span class="n">0.883</span>, best in both styles at once — no router needed. This is why real RFP tools are built around <b>answer libraries</b>, not raw-document RAG.</div>
         </div>
       </div>
     </div>
-    <div class="pagenum">17 / 28</div>
+    <div class="pagenum">18 / 29</div>
   </section>
 
 <section class="slide" id="s17b">
@@ -1086,7 +1128,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">18 / 28</div>
+    <div class="pagenum">19 / 29</div>
   </section>
 
 <section class="slide" id="s18">
@@ -1121,7 +1163,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">19 / 28</div>
+    <div class="pagenum">20 / 29</div>
   </section>
 
 <section class="slide" id="s19">
@@ -1161,7 +1203,7 @@
         <div class="cq">Our data is security-compliance — a standardized <span class="tl">best case</span> — and the corpus is <span class="amb">LLM-generated</span>. The <span class="tl">architecture</span> (filter, library model, phased ranking, distillation, fine-tuning) should port; the <span class="amb">magnitudes</span> (BM25's dominance, the library jump) won't. Pricing, capabilities, and essay questions are <span class="amb">untested</span>. Know the limits of your eval.</div>
       </div>
     </div>
-    <div class="pagenum">20 / 28</div>
+    <div class="pagenum">21 / 29</div>
   </section>
 
 <section class="slide" id="s20">
@@ -1196,7 +1238,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">21 / 28</div>
+    <div class="pagenum">22 / 29</div>
   </section>
 
 <section class="slide" id="s21">
@@ -1282,7 +1324,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">22 / 28</div>
+    <div class="pagenum">23 / 29</div>
   </section>
 
 <section class="slide" id="s22">
@@ -1363,16 +1405,28 @@
             <div class="bar exp" style="width:72.2%"><span class="val">0.578</span></div></div>
           <div class="cost"><span class="exp">~2500 ms</span></div>
         </div>
-        <div class="row hi">
+        <div class="row">
           <div class="label"><span class="idx">09</span>q2q library (embed question)</div>
           <div class="track"><span class="gridline" style="left:50%"></span><span class="gridline" style="left:75%"></span>
             <div class="bar fast" style="width:79.4%"><span class="val">0.635</span></div></div>
           <div class="cost"><span class="fast">fast</span></div>
         </div>
         <div class="row">
-          <div class="label"><span class="idx">10</span>HyDE rewrite + library †</div>
+          <div class="label"><span class="idx">10</span>modern reranker + library †</div>
           <div class="track"><span class="gridline" style="left:50%"></span><span class="gridline" style="left:75%"></span>
-            <div class="bar exp" style="width:89.9%"><span class="val">0.719</span></div></div>
+            <div class="bar exp unconf" style="width:84.8%"><span class="val">0.678</span></div></div>
+          <div class="cost"><span class="exp">~2 s</span></div>
+        </div>
+        <div class="row hi">
+          <div class="label"><span class="idx">11</span>q2q + symmetric prefixes</div>
+          <div class="track"><span class="gridline" style="left:50%"></span><span class="gridline" style="left:75%"></span>
+            <div class="bar fast" style="width:87.9%"><span class="val">0.703</span></div></div>
+          <div class="cost"><span class="fast">fast</span></div>
+        </div>
+        <div class="row">
+          <div class="label"><span class="idx">12</span>HyDE rewrite + library †</div>
+          <div class="track"><span class="gridline" style="left:50%"></span><span class="gridline" style="left:75%"></span>
+            <div class="bar exp unconf" style="width:89.9%"><span class="val">0.719</span></div></div>
           <div class="cost"><span class="exp">~2 s</span></div>
         </div>
       </div>
@@ -1380,15 +1434,15 @@
       <div class="takeaway">
         <div class="ta">
           <div class="k">the jump</div>
-          <div class="v">Embedding the <b>question</b>, not the answer, lifts the hard case from <span class="n">0.505</span> to <b class="n">0.635</b> — the best confirmed arm, and it costs nothing. A structural win, not a bigger model.</div>
+          <div class="v">Embedding the <b>question</b>, not the answer, lifts the hard case <span class="n">0.505 → 0.635</span>; matching the symmetric task <b>symmetrically</b> (query prefix both sides, float titles) lifts it to <b class="n">0.703</b> — <b class="n">+39%</b>, all free, all confirmed (p&lt;0.0001).</div>
         </div>
         <div class="ta">
           <div class="k teal">the cost story</div>
-          <div class="v">Everything expensive disappoints. The cross-encoder stacked on the library model scores <span class="n">0.578</span> vs <b class="n">0.635</b> without it, at ~300× the cost. † And the HyDE rewrite's <span class="n">0.719</span> <b>failed out-of-sample confirmation</b> at 232 queries (<span class="n">+0.023</span>, p≈0.24) — though it does beat the equal-cost cross-encoder (p≈0.001).</div>
+          <div class="v">The shipped cross-encoder is <b>worse</b> than the free library model (<span class="n">0.578</span> vs <span class="n">0.635</span>, ~300× the cost). † The dimmed bars above it — a modern reranker and the HyDE rewrite, ~2 s/query each — sit higher <b>only within noise</b>: +0.02 out-of-sample, p≥0.21, <b>unconfirmed</b>. The solid winner is the free one.</div>
         </div>
       </div>
     </div>
-    <div class="pagenum">23 / 28</div>
+    <div class="pagenum">24 / 29</div>
   </section>
 
 <section class="slide" id="s23">
@@ -1423,7 +1477,7 @@
           <div class="fn">03</div>
           <div>
             <div class="ft">The expensive cross-encoder makes things worse.</div>
-            <div class="fb">Stacked on the library model it scores <span class="n">0.578</span> vs <span class="n">0.635</span> without it — rescoring near-identical answers reintroduces the confusion matching questions removes. As an offline <b>teacher</b> it distils to a student that <b>beats it</b> (<span class="n">0.604</span> vs <span class="n">0.561</span>) at <b>~8ms</b>.</div>
+            <div class="fb">Stacked on the library model it scores <span class="n">0.578</span> vs <span class="n">0.635</span> without it — rescoring near-identical answers reintroduces the confusion matching questions removes. As an offline <b>teacher</b> it distils to a student that <b>beats it</b> (<span class="n">0.604</span> vs <span class="n">0.561</span>) at <b>~8ms</b>. A follow-up narrowed the claim: a <b>modern</b> reranker is no longer harmful — but still never significantly beats the free library model.</div>
           </div>
         </div>
         <div class="find">
@@ -1442,7 +1496,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">24 / 28</div>
+    <div class="pagenum">25 / 29</div>
   </section>
 
 <section class="slide" id="s24">
@@ -1461,7 +1515,7 @@
       <div class="ftcols">
         <div class="ftcol done">
           <div class="fk">validated — in depth</div>
-          <div class="fv">The <b>search-quality half</b> of the architecture: retrieval, ranking, chunking, distillation, query-side rewriting (HyDE), and the measurement rig that keeps them honest.</div>
+          <div class="fv">The <b>search-quality half</b> of the architecture: retrieval, ranking, chunking, distillation, query-side rewriting (HyDE), served-embedder and modern-reranker controls, the mixed-workload check — and the measurement rig that keeps them all honest.</div>
         </div>
         <div class="ftcol next">
           <div class="fk">needs the cluster</div>
@@ -1479,7 +1533,7 @@
     <div class="closer">
       <div class="cq">This study set out to <span class="amb">diagnose before optimising</span>, and not to fool itself with noisy results. That discipline is exactly what it kept having to apply to its own findings.</div>
     </div>
-    <div class="pagenum">25 / 28</div>
+    <div class="pagenum">26 / 29</div>
   </section>
 
 <section class="slide" id="s25">
@@ -1508,7 +1562,7 @@
         <div class="gterm"><div class="gt">Chunk / passage</div><div class="gdf">the slice of a document that actually gets embedded and retrieved.</div></div>
       </div>
     </div>
-    <div class="pagenum">26 / 28</div>
+    <div class="pagenum">27 / 29</div>
   </section>
 
 <section class="slide" id="s26">
@@ -1537,7 +1591,7 @@
         <div class="gterm"><div class="gt">qrels · CV · bootstrap</div><div class="gdf">the graded answer key / test-on-unseen-queries / resample to check a gain is real, not noise.</div></div>
       </div>
     </div>
-    <div class="pagenum">27 / 28</div>
+    <div class="pagenum">28 / 29</div>
   </section>
 
 <section class="slide" id="s27">
@@ -1567,7 +1621,7 @@
         <div class="gterm"><div class="gt">Loss function</div><div class="gdf">what training actually optimizes; pick one that doesn't match the task and a better model ranks worse.</div></div>
       </div>
     </div>
-    <div class="pagenum">28 / 28</div>
+    <div class="pagenum">29 / 29</div>
   </section>
 
 </div>

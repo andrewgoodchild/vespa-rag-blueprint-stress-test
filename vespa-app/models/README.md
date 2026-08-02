@@ -14,17 +14,25 @@ curl -sL -o colbert.onnx \
 # MiniLM cross-encoder — global-phase reranker (Exps 9–12), ~87 MB
 curl -sL -o cross_encoder.onnx \
   'https://huggingface.co/Xenova/ms-marco-MiniLM-L-6-v2/resolve/main/onnx/model.onnx'
+
+# MiniLM bi-encoders for the Gap 5 served library-model arms, ~90 MB each —
+# built locally (base model + the Gap 2 contrastive fine-tune), not fetched:
+python3 ../../benchmark/gap5_export_minilm.py
 ```
 
-Their tokenizers (`colbert_tok.json`, `ce_tokenizer.json`) are already here, so
-no further setup is needed — zip and deploy `vespa-app/` as normal.
+The tokenizers (`colbert_tok.json`, `ce_tokenizer.json`,
+`minilm_tokenizer.json`) are already here, so no further setup is needed — zip
+and deploy `vespa-app/` as normal.
 
 | file | in git | source |
 |---|---|---|
 | `colbert.onnx` | no | `colbert-ir/colbertv2.0` |
 | `cross_encoder.onnx` | no | `Xenova/ms-marco-MiniLM-L-6-v2` |
+| `minilm_base.onnx` | no | exported by `benchmark/gap5_export_minilm.py` |
+| `minilm_ft.onnx` | no | fine-tuned + exported by the same script |
 | `colbert_tok.json` | yes | same repo, `raw/main/tokenizer.json` |
 | `ce_tokenizer.json` | yes | same repo, `resolve/main/tokenizer.json` |
+| `minilm_tokenizer.json` | yes | `sentence-transformers/all-MiniLM-L6-v2` |
 | `lightgbm_model.json` | yes | trained here (`benchmark/train_*.py`) |
 
 The ModernBERT embedder (`nomic modernbert-embed-base`) is not in this

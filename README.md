@@ -6,6 +6,28 @@ An empirical study of a retrieval architecture: deploy the
 point it at a workload built to break it, and measure which parts of the stack
 actually earn their cost.
 
+> **TL;DR.** The deployable recipe is two lines: a **hard tenant filter**,
+> plus **match the incoming question against the stored question** (the
+> "library model") — on the raw query, embedding **both sides with the query
+> prefix** (it's a symmetric task) and keeping float title vectors. The
+> embedder is the blueprint's own `nomic modernbert-embed-base`: a bake-off
+> found that conditioning it symmetrically beat swapping in newer models
+> (bge-m3, Qwen3) entirely. That free
+> config lifted the hard paraphrase case 0.505 → **0.703** nDCG@10 and covers
+> a blended verbatim+paraphrase workload at **0.883**, best-in-study on both
+> styles at once (so a query-style router buys nothing). Everything more expensive
+> failed to confirm a gain over it: learned rankers tied zero-shot, the
+> shipped cross-encoder was *harmful* (a modern one merely ties), fusing the
+> best arms never beat the best arm, a served fine-tuned embedder couldn't
+> catch the bigger zero-shot one, and the HyDE query rewrite that briefly
+> held the record at 0.719 **failed out-of-sample replication** when the
+> query set was scaled — while the symmetric-prefix fix, a one-line config
+> change, passed that same bar at p<0.0001 and beat swapping in newer
+> embedders outright. The rest of the repo is the evidence chain for those
+> two lines, and the measurement harness that kept killing everything else.
+> Biggest caveat: the corpus is LLM-generated and its difficulty is a dial
+> we set — validate the magnitudes on real data before trusting them.
+
 ## Why Vespa?
 
 Most RAG stacks are a vector index plus application code. Vespa is a tensor-based
@@ -89,7 +111,8 @@ wording):
 | ColBERT late interaction | 0.517 | ~60 ms/q |
 | cross-encoder rerank | 0.561–0.578 | ~2.5 s/q |
 | HyDE rewrite into question space + original query | 0.719 | ~2 s/q |
-| **q2q-semantic (embed the question — the "library model")** | **0.635** | fast |
+| q2q-semantic (embed the question — the "library model") | 0.635 | fast |
+| **library model + symmetric prefixes & float titles (Gap 7)** | **0.703** | fast |
 
 The cheapest arm wins. Matching the incoming question against the *stored
 question* rather than the stored answer beats every reranker tested, including
@@ -157,7 +180,10 @@ cross-tenant leaks per arm.
    A cross-encoder over the library model scores 0.578 vs 0.635 without it, at
    ~300× the query cost. Reranking on answer text reintroduces the
    near-duplicate confusion that matching on questions avoids. Retrieve on the
-   right field and the reranker has nothing left to add.
+   right field and the reranker has nothing left to add. *(Later narrowed by a
+   follow-up: the harm is specific to the shipped 2020-era model — a modern
+   reranker is at-or-above the library model, but still never significantly
+   above it. "Harmful" retracted; "doesn't earn its cost" confirmed.)*
 10. **Distillation beats its own teacher — and reversed a result this study
     had confirmed three times.** A cross-encoder teacher labelled 47,000 pairs;
     a distilled student then *outscored* it, 0.604 vs 0.561, at microsecond
@@ -183,6 +209,25 @@ cross-tenant leaks per arm.
     survivors, all significant at scale: the rewrite beats the equal-cost
     cross-encoder, discarding the original query is actively harmful, and the
     library model's edge over every reranker is confirmed on 232 queries.
+14. **Three follow-ups simplified the deployment story further.** On a
+    464-query verbatim+paraphrase blend, the library model alone scores 0.850
+    and an oracle per-style router adds +0.001 — no router needed. RRF-fusing
+    the best arms never beats the best arm. And serving the fine-tuned small
+    embedder showed its +0.023 cannot close the −0.062 gap to the larger
+    zero-shot embedder — pick the strongest base embedder before fine-tuning
+    anything. Serve the library model, alone, on the raw query, with the best
+    embedder you have.
+15. **The library model was leaving free, significant accuracy on the
+    table: match a symmetric task symmetrically.** The blueprint embeds
+    queries and documents with different prefixes — but in the library model
+    both sides are questions. Embedding the stored question with the *query*
+    prefix is worth +0.039 (p<0.0001, identical out-of-sample — the first
+    intervention since the tenant filter to clear that bar), and float title
+    vectors add +0.023 over binarized. Combined: 0.635 → **0.703** on the
+    hard case, 0.965 verbatim, 0.883 blended — best-in-study on all three at
+    zero query cost, strictly dominating the HyDE rewrite. An embedder
+    bake-off confirmed the config mattered more than the model: symmetric
+    nomic beat bge-m3 and Qwen3-0.6B (instructed or not) outright.
 
 ## Reproducing
 

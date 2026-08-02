@@ -1027,3 +1027,196 @@ original set, so "out-of-sample" means new queries, not a new distribution;
 ColBERT/ce-semantic/ce-hybrid not re-run at scale; the drift observation is
 n=1 (one regeneration event, cause unresolved — provider routing, model
 update, or an unlucky original sample).
+
+---
+
+## 2026-08-01 — Gap 4: the mixed workload, and fusing the best arms
+
+**Question.** Two analyses computable entirely from committed run files.
+*(a)* Finding 25b suggested routing by query style; nobody measured what a
+single configuration scores on realistic blended traffic, or what a router
+would actually buy. *(b)* Does RRF-fusing the two best arms beat both?
+
+**Design.** *(a)* Blend = 232 verbatim + 232 scaled paraphrases (Exp 15's
+twins), tenant-filtered, per-arm mean over the 464-query union; oracle router
+= best fixed arm per style chosen with hindsight (an upper bound no real
+router reaches). *(b)* Client-side reciprocal rank fusion (k=60) over top-50
+runs (`results/gap4/`, re-run with `--hits 50`) of q2q, the HyDE
+question+query rewrite, and the student.
+
+**Results.** *(a)* Blend-464 nDCG@10: q2q **0.850**; student 0.811; ce-q2q
+0.822; hybrid 0.724; BM25 0.652. Oracle router (student on verbatim / q2q on
+paraphrase) reaches 0.852 — **router headroom +0.001**. q2q is within 0.003
+of the best verbatim arm (0.961 vs 0.964) while dominating paraphrases, so
+one config covers the mixed workload. *(b)* Every fusion lands at or below
+its best parent: q2q+hydeqcat 0.765 vs hydeqcat alone 0.775 (p≈0.44);
+q2q+student 0.731 vs q2q 0.740 (p≈0.55); the triple 0.758 (p≈0.36).
+
+**Finding 38 — no router, no fusion: serve the library model alone.** The
+routing idea from finding 25b dissolves on measurement — the library model is
+already at the verbatim ceiling, so styling-aware dispatch buys +0.001. And
+rank fusion of the best arms never beats the best arm (finding 23's
+weak-signal lesson extends to fusing two *strong* arms whose rankings mostly
+agree — the fusion can only blur the better one). The deployment story gets
+simpler, not more clever.
+
+---
+
+## 2026-08-01 — Gap 5: serving the fine-tuned embedder (Gap 2, completed)
+
+**Question.** Gap 2 fine-tuned MiniLM offline and never deployed it — yet
+finding 11's "fine-tune the representation" and finding 22's "index the
+question" had never been combined in the engine. Does the served fine-tune
+catch the deployed nomic library model?
+
+**Design.** `gap5_export_minilm.py` re-runs the Gap 2 training reproducibly
+(seed 42; base 0.591 exactly reproduces `results/gap2/result.json`, tuned
+0.617 vs July's 0.622 — within the seed band), saves the checkpoint Gap 2
+discarded, and exports base + tuned MiniLM to ONNX. Served as two
+`hugging-face-embedder` components (`minibase`, `minift`), two float-tensor
+question-embedding fields with angular NN, and two rank profiles
+(`q2q-mini`, `q2q-ft`). 940 docs re-fed; eval on the **original 47 only**
+(the scaled set overlaps the training question_ids). Runs in `results/gap5/`.
+
+**Results (nDCG@10, 47 paraphrases, tenant-filtered).**
+
+| served arm | nDCG@10 |
+|---|---|
+| q2q — nomic ModernBERT (Exp 10) | **0.635** |
+| q2q — fine-tuned MiniLM | 0.595 |
+| q2q — base MiniLM | 0.573 |
+
+Fine-tune delta served: +0.023 (p≈0.21; offline +0.026). Tuned vs nomic:
+−0.039 (p≈0.29). Served numbers sit ~0.02 under their offline equivalents
+(approximate NN + targetHits vs exact within-tenant scan).
+
+**Finding 39 — embedder choice dominates embedder fine-tuning.** The
+contrastive fine-tune reproduces and survives serving, but it moves a small
+embedder +0.023 while the *gap to the larger zero-shot embedder* is +0.062.
+Finding 11 is true within a model family and misleading across them: before
+fine-tuning anything, pick the strongest base embedder — then fine-tune
+*that*. The unfinished follow-up writes itself: contrastively fine-tune the
+nomic embedder on the same 195 pairs (heavier — ModernBERT on MPS — and
+untested here).
+
+---
+
+## 2026-08-01 — Gap 6: a modern cross-encoder (was finding 24 about reranking, or about one model?)
+
+**Question.** Findings 24/29 — "the cross-encoder makes the library model
+*worse*; retire it" — rest entirely on ms-marco MiniLM-L-6, a 6-layer
+2020-era model. Is the sharpest negative result in the study a fact about
+reranking, or about that reranker?
+
+**Design.** `gap6_modern_ce.py`: BAAI/bge-reranker-v2-m3 (568M,
+current-generation), offline on MPS, reranking the same tenant-filtered
+top-50 pools (library-model and hybrid first phases, `results/gap4/`),
+reading stored question + answer text like the deployed `ce_tokens` input.
+Scored on the original 47 and the full scaled 232; per-query scores in
+`results/gap6/`. ~1.7 s/query on MPS — same cost class as the deployed
+cross-encoder and the HyDE rewrite.
+
+**Results (nDCG@10, tenant-filtered).**
+
+| arm | orig-47 | full-232 | new-185 (oos) |
+|---|---|---|---|
+| q2q first phase (free) | 0.635 | 0.740 | 0.766 |
+| old ce-q2q (ms-marco MiniLM) | 0.578 | 0.683 | 0.710 |
+| **bge-reranker over q2q recall** | 0.678 | 0.765 | 0.787 |
+| HyDE question+query (Exp 15) | 0.719 | 0.775 | 0.789 |
+
+Paired bootstrap: bge vs old ce **+0.082, p<0.0001** (full-232) — the modern
+model is categorically better. bge vs the free library model: +0.043 p≈0.33
+(47), +0.025 p≈0.11 (232), +0.021 p≈0.21 (oos) — never significant. bge vs
+the HyDE rewrite at the same cost: −0.010 p≈0.59 (232) — a statistical tie.
+
+**Finding 40 — "actively harmful" is retracted; "doesn't earn its cost"
+survives.** The harm in finding 24 was a property of the shipped model, not
+of reranking: a modern cross-encoder over the same recall is at-or-above the
+library model on every subset. But it is *never significantly above it* —
+~1.7 s/query of 568M-parameter compute buys a +0.02–0.04 tendency that the
+paired bootstrap cannot distinguish from zero, and it exactly ties the LLM
+query rewrite at equal cost. The refined through-line: on this corpus the
+expensive stage is no longer poison, and still not worth buying — the free
+library model remains the recommendation. (Both expensive techniques now
+show the same unconfirmed ~+0.02 at scale; if either is ever worth it, a
+much larger query set will have to say so.)
+
+---
+
+## 2026-08-02 — Gap 7: prefix symmetry and an embedder bake-off
+
+**Question.** Two threads from the embedder discussion. *(a)* The library
+model is a **symmetric** task — question matched against question — but the
+nomic embedder conditions its two sides asymmetrically (`search_query:` vs
+`search_document:` prepends, inherited from the blueprint). Is the
+document-side prefix costing accuracy on a task that has no documents?
+*(b)* Every number in the study rides on one small 2024 embedder; do
+current-generation models (bge-m3, Qwen3-Embedding-0.6B — the latter
+instruction-conditioned, aimed squarely at capturing HyDE's
+normalise-toward-question-space gain inside the forward pass) beat it?
+
+**Design.** *(a)* Served: a second nomic component (`nomicsym`) identical
+except both prepends are `search_query:`; stored questions re-embedded into
+`title_emb_sym`; two rank profiles (`q2q-float` / `q2q-sym`) scoring
+identical float cosine over the whole tenant, so the *only* difference is the
+document-side prefix. Runs in `results/gap7/`, scaled paraphrase set +
+verbatim. *(b)* Offline (`gap7_embed_bakeoff.py`, same exact-scan harness as
+Gap 2): nomic asym/sym, bge-m3, Qwen3-0.6B raw and with a task instruction;
+per-query scores in `results/gap7/bakeoff.json`. Ops note for the record:
+the third embedder pushed the 6 GB container past Vespa's default feed-block
+limits (HTTP 507 NO_SPACE mid-feed — disk was at 77% against the 0.75
+default); fixed with explicit `resource-limits` (0.88/0.85) in services.xml,
+then a clean 940/940 re-feed.
+
+**Results (served, nDCG@10, tenant-filtered).**
+
+| arm | orig-47 | new-185 (oos) | full-232 | verbatim |
+|---|---|---|---|---|
+| q2q — binary titles, asym prefixes (Exp 15 baseline) | 0.635 | 0.766 | 0.740 | 0.961 |
+| q2q — float titles, asym prefixes | 0.662 | 0.788 | 0.762 | 0.964 |
+| **q2q — float titles, symmetric prefixes** | **0.703** | **0.827** | **0.802** | **0.965** |
+
+Paired bootstrap: symmetric vs asymmetric float (the pure prefix effect)
+**+0.039, p<0.0001 — identical out-of-sample**. Float vs binary titles
++0.023 (p≈0.017 full / 0.045 oos). Combined vs the study's headline arm:
+**+0.062, p<0.0001**. Verbatim 0.965 is the best verbatim number in the
+study; the 464-query blend rises 0.850 → **0.883**, and the oracle router
+question closes itself — the symmetric arm is now the best arm in *both*
+styles, so router headroom is zero by construction. Against the HyDE rewrite
+it is +0.027 (p≈0.11) — the free arm is at-or-above the ~2 s/query one,
+which is thereby strictly dominated.
+
+Offline bake-off (full-232, delta vs nomic-asym, paired bootstrap):
+
+| arm | full-232 | delta | p (full / oos) |
+|---|---|---|---|
+| nomic asym (baseline) | 0.763 | — | — |
+| **nomic symmetric** | **0.805** | **+0.042** | **<0.0001 / <0.0001** |
+| bge-m3 | 0.766 | +0.003 | 0.84 / 0.82 |
+| Qwen3-0.6B raw | 0.793 | +0.030 | 0.060 / 0.11 |
+| Qwen3-0.6B instructed | 0.797 | +0.034 | 0.035 / 0.067 |
+
+**Finding 41 — the library model was leaving free, significant accuracy on
+the table: match a symmetric task symmetrically.** Embedding the stored
+question with the *query* prefix is worth +0.039 served (p<0.0001, the first
+intervention since the tenant filter to clear significance out-of-sample),
+plus +0.023 for float title vectors over binarized ones (940 titles × 3 KB —
+binarization saves nothing worth having here). The upgraded free arm:
+paraphrase 0.802, verbatim 0.965, blend 0.883 — best confirmed numbers in
+the study on all three, at zero query cost. The recipe gains six words:
+*query prefix on both sides, float titles.*
+
+**Finding 42 — configuration beat model shopping.** Same-model symmetric
+conditioning (+0.042, p<0.0001) beat switching to bge-m3 (+0.003, a tie) and
+beat Qwen3-0.6B (+0.030 raw; instruction conditioning adds only +0.004 over
+raw and is not significant out-of-sample) — the instructed-embedder route to
+HyDE's gain mostly wasn't there, at least at 0.6B. Consistent with the
+study's oldest through-line: before buying a newer model, check what the
+current one is being asked to do.
+
+**Caveats.** Bake-off is offline (exact scan; Gap 5 measured serving ≈
+−0.02) and single-seed; Qwen3's larger variants and API embedders untested;
+the prefix result is one model family — other prefix-conditioned embedders
+(e5, Cohere input_type) should replicate it before it's called general; all
+of limitation 1 applies.

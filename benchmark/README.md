@@ -4,7 +4,7 @@ A small, adversarial benchmark for a multi-tenant RFP/questionnaire RAG pipeline
 modelled on the target architecture in [`../spec/target-architecture.md`](../spec/target-architecture.md)
 (a fictional scenario written for this study).
 
-> **Status: 15 experiments + 3 follow-ups executed** against the Vespa RAG
+> **Status: 15 experiments + 6 follow-ups executed** against the Vespa RAG
 > Blueprint deployed locally (adapted app in `../vespa-app/`). Chronology in
 > [../LABBOOK.md](../LABBOOK.md); full findings and per-arm scores in
 > [RESULTS.md](RESULTS.md); raw TREC runs in `results/`.

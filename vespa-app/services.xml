@@ -31,6 +31,37 @@ project root. -->
             <transformer-model path="models/colbert.onnx"/>
             <tokenizer-model path="models/colbert_tok.json"/>
         </component>
+        <!-- Gap 7: same nomic model, but with the query prefix on BOTH sides.
+             The library model is a symmetric task (question vs question), and
+             the standard search_query:/search_document: prepends make it
+             asymmetric — this component embeds stored questions as queries. -->
+        <component id="nomicsym" type="hugging-face-embedder">
+            <transformer-model
+                url="https://data.vespa-cloud.com/onnx_models/nomic-ai-modernbert-embed-base/model.onnx" />
+            <transformer-token-type-ids />
+            <tokenizer-model
+                url="https://data.vespa-cloud.com/onnx_models/nomic-ai-modernbert-embed-base/tokenizer.json" />
+            <transformer-output>token_embeddings</transformer-output>
+            <max-tokens>8192</max-tokens>
+            <prepend>
+                <query>search_query:</query>
+                <document>search_query:</document>
+            </prepend>
+        </component>
+        <!-- Gap 5: base + contrastively fine-tuned MiniLM served for the
+             library model (q2q). ONNX exported by benchmark/gap5_export_minilm.py -->
+        <component id="minibase" type="hugging-face-embedder">
+            <transformer-model path="models/minilm_base.onnx"/>
+            <tokenizer-model path="models/minilm_tokenizer.json"/>
+            <transformer-output>last_hidden_state</transformer-output>
+            <max-tokens>256</max-tokens>
+        </component>
+        <component id="minift" type="hugging-face-embedder">
+            <transformer-model path="models/minilm_ft.onnx"/>
+            <tokenizer-model path="models/minilm_tokenizer.json"/>
+            <transformer-output>last_hidden_state</transformer-output>
+            <max-tokens>256</max-tokens>
+        </component>
         <search />
         <nodes>
             <node hostalias="node1" />
@@ -39,6 +70,16 @@ project root. -->
 
     <content id="content" version="1.0">
         <min-redundancy>1</min-redundancy>
+        <!-- Gap 7: the default feed-block limits (disk 0.75 / memory 0.8) sit
+             below this laptop's baseline Docker-VM utilization, which 507s the
+             feed once a third embedder is loaded. The corpus is ~MBs, so the
+             raised limits are still conservative for local runs. -->
+        <tuning>
+            <resource-limits>
+                <disk>0.88</disk>
+                <memory>0.85</memory>
+            </resource-limits>
+        </tuning>
         <documents>
             <document type="doc" mode="index" />
             <document type="docp" mode="index" />

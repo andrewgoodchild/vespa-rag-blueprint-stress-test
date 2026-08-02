@@ -38,9 +38,15 @@ ARMS = [
     ("HyDE answer + query", "hydeanscat-semantic"),
     ("HyDE hypothetical question", "hydeq-q2q-semantic"),
     ("HyDE question + query", "hydeqcat-q2q-semantic"),
+    # Gap 5: the library model served with small bi-encoders instead of nomic
+    ("library model — base MiniLM", "q2q-mini"),
+    ("library model — fine-tuned MiniLM", "q2q-ft"),
+    # Gap 7: prefix symmetry — float titles, asymmetric vs symmetric prepends
+    ("library model — float titles, asym prefixes", "q2q-float"),
+    ("library model — float titles, symmetric prefixes", "q2q-sym"),
 ]
 
-RESULT_DIRS = ["exp8", "exp9", "exp11", "exp13", "exp14", "exp15", "gap3"]
+RESULT_DIRS = ["exp8", "exp9", "exp11", "exp13", "exp14", "exp15", "gap3", "gap5", "gap7"]
 
 SETS = {
     "para": ("queries-rfq-para.jsonl", "qrels-rfq-para.tsv"),

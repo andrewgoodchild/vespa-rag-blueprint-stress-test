@@ -11,3 +11,6 @@ vespa-app/models/*.onnx
 # Generation cache for the questionnaire corpus. The corpus itself IS committed
 # (we authored it); this is just the LLM call cache that rebuilds it for free.
 benchmark/.synthetic-cache.json
+
+# Gap 5 fine-tune checkpoint — ~90 MB, reproducible via benchmark/gap5_export_minilm.py (seed 42)
+benchmark/checkpoints/
