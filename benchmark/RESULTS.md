@@ -708,6 +708,45 @@ shift.
 
 ---
 
+# Gap 9: engine bake-off — the winning recipe on Qdrant vs Vespa (run 2026-08-06)
+
+The deployable recipe — library model, symmetric prefixes, float titles,
+hard tenant filter — is pure dense retrieval plus a filter: the one
+configuration any vector database can also express. `gap9_qdrant.py`
+(stdlib REST client, no new dependencies) serves it from Qdrant — the same
+nomic embeddings, tenant as an indexed keyword payload, filtered top-10 in
+HNSW and exact modes — against the committed Vespa served runs from Gap 7.
+Held at fixed model and config this measures serving fidelity, not model
+quality. Three deltas decompose the stack; runs and per-query scores in
+`results/gap9/`.
+
+| arm (tenant-filtered, nDCG@10) | full-232 | oos-185 | verbatim |
+|---|---|---|---|
+| offline numpy (Gap 8 control) | 0.805 | 0.830 | 0.966 |
+| Qdrant — exact, filtered | 0.805 | 0.830 | 0.966 |
+| Qdrant — HNSW, filtered | 0.805 | 0.830 | 0.966 |
+| Vespa — served (Gap 7) | 0.802 | 0.827 | 0.965 |
+
+**44. The engine didn't matter; the recipe did.** Feed fidelity: Qdrant
+exact reproduces the offline scan identically on all 464 queries.
+ANN-under-filter loss: exactly zero — HNSW returns the same top-10 as exact
+everywhere. Whole system: +0.0032 (p≈0.048) paraphrase / +0.0006 (p≈0.29)
+verbatim, with only 19 and 16 of 232 queries differing at all — traced to
+the embedding path (client PyTorch fp32 vs in-engine ONNX), not the index:
+a tie. Nothing in the study's headline numbers is Vespa-specific; the
+recipe is portable to any vector store with payload filtering. What Vespa
+bought was the *exploration* — BM25, hybrid, ColBERT, cross-encoders and
+GBDT phases all ran as rank-profile edits in one engine, the search that
+found the recipe. Pick the engine for the search you still need to do, not
+for the recipe you already have. Caveats: 940 docs (~235 per tenant
+post-filter) makes the ANN question toy-sized — this proves feed
+correctness, not large-scale recall; default HNSW parameters, one Qdrant
+version; latency paths differ by design (client-side vs in-engine
+embedding) and are deliberately not compared; the tie covers the dense-only
+recipe — lexical/hybrid/in-engine-reranking arms were not ported.
+
+---
+
 # Evaluation methodology & limitations
 
 ## How things were measured

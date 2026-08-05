@@ -1275,3 +1275,58 @@ fine-tuning could move it (Gap 2 moved a dense model +0.031); offline
 protocol (serving ≈ −0.02, Gap 5); the BM25 comparison crosses the
 offline/served boundary, though the gap dwarfs that shift; all of
 limitation 1 applies.
+
+## 2026-08-06 — Gap 9: engine bake-off — the winning recipe on Qdrant vs Vespa
+
+**Question.** The study's deployable recipe — library model, symmetric
+prefixes, float titles, hard tenant filter — is pure dense retrieval plus a
+filter: the one configuration any vector database can also express. Held at
+fixed model and config, does the *engine* matter? This measures serving
+fidelity, not model quality; the expected result is a tie, and any real gap
+would be news.
+
+**Design.** `gap9_qdrant.py` (stdlib REST client, no new dependencies):
+Qdrant in Docker, one 768-dim cosine collection over the same nomic
+embeddings (query prefix both sides), tenant as an indexed keyword payload,
+filtered top-10 on the scaled paraphrase and verbatim sets. Three deltas
+decompose the stack: offline numpy vs `qdrant-exact` (feed + scoring
+fidelity), exact vs HNSW (ANN-under-filter loss), Qdrant vs the committed
+Vespa served runs from Gap 7 (whole-system, including each engine's natural
+embedding path — client PyTorch vs in-engine ONNX). TREC runs + per-query
+scores in `results/gap9/`.
+
+**Results (nDCG@10, tenant-filtered).**
+
+| arm | full-232 | oos-185 | verbatim |
+|---|---|---|---|
+| offline numpy (Gap 8 control) | 0.805 | 0.830 | 0.966 |
+| Qdrant — exact, filtered | 0.805 | 0.830 | 0.966 |
+| Qdrant — HNSW, filtered | 0.805 | 0.830 | 0.966 |
+| Vespa — served (Gap 7) | 0.802 | 0.827 | 0.965 |
+
+Feed fidelity: Qdrant-exact reproduces the offline scan **identically on
+all 464 queries** (delta exactly 0). ANN-under-filter loss: **exactly
+zero** — HNSW returns the same top-10 as exact everywhere. Whole-system:
+Qdrant +0.0032 (p≈0.048) paraphrase / +0.0006 (p≈0.29) verbatim, with only
+19 and 16 of 232 queries differing at all — magnitude and provenance
+(the embedding path, PyTorch fp32 vs ONNX, not the index) both say tie.
+Qdrant filtered-HNSW search p50 4.9 ms / p95 6.2 ms *excluding* client-side
+embedding; Vespa's served latency embeds in-engine, so the two are not
+like-for-like and no latency winner is declared.
+
+**Finding 44 — the engine didn't matter; the recipe did.** At fixed model
+and config the two engines are indistinguishable — the deployable recipe is
+**portable to any vector store with payload filtering**, and nothing about
+the study's headline numbers is Vespa-specific. What Vespa actually bought
+here was the *exploration*: BM25, hybrid, ColBERT, cross-encoders, GBDT
+phases and served embedders all ran as rank-profile edits in one engine —
+the 15-experiment search that *found* the recipe. Pick the engine for the
+search you still need to do, not for the recipe you already have.
+
+**Caveats.** 940 docs (~235 per tenant post-filter) makes the ANN question
+toy-sized — HNSW-vs-exact at this scale proves feed correctness, not
+large-scale recall; single Qdrant version, default HNSW parameters; latency
+measured on a laptop with different embedding paths, deliberately not
+compared; the tie is specific to the dense-only recipe — arms that need
+lexical/hybrid/in-engine reranking were not ported; all of limitation 1
+applies.

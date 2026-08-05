@@ -23,7 +23,9 @@ actually earn their cost.
 > held the record at 0.719 **failed out-of-sample replication** when the
 > query set was scaled — while the symmetric-prefix fix, a one-line config
 > change, passed that same bar at p<0.0001 and beat swapping in newer
-> embedders outright. The rest of the repo is the evidence chain for those
+> embedders outright. The recipe is also engine-portable: at fixed model
+> and config, Qdrant serves it at identical quality (Gap 9). The rest of
+> the repo is the evidence chain for those
 > two lines, and the measurement harness that kept killing everything else.
 > Biggest caveat: the corpus is LLM-generated and its difficulty is a dial
 > we set — validate the magnitudes on real data before trusting them.
@@ -36,6 +38,10 @@ engine evaluates next to the data. Lexical and semantic retrieval run in one
 query, reranking is phased inside the engine, and models run there too — so
 techniques that would be separate services elsewhere are a change to a text
 file here. That makes it a good thing to experiment on.
+
+Gap 9 closes the question from the other side: the *winning* recipe, held at
+fixed model and config, serves at identical quality from Qdrant — the engine
+mattered for the 15-experiment search, not for the destination it found.
 
 ## Test cases
 
@@ -85,10 +91,10 @@ rather than a clean negative.
 |---|---|
 | [`spec/target-architecture.md`](spec/target-architecture.md) | The fictional scenario and target stack, mapped onto blueprint features |
 | [`LABBOOK.md`](LABBOOK.md) | Chronological lab notebook — question, design, results, conclusions per experiment (Exps 1–15) |
-| [`benchmark/RESULTS.md`](benchmark/RESULTS.md) | Full findings (1–43) with per-query diagnostics |
+| [`benchmark/RESULTS.md`](benchmark/RESULTS.md) | Full findings (1–44) with per-query diagnostics |
 | [`benchmark/`](benchmark/README.md) | Both datasets in full — 39 adversarial docs and the 940-answer questionnaire corpus — plus query sets, graded TREC qrels, scorer, runners, training scripts and every raw run |
 | [`vespa-app/`](vespa-app/) | The blueprint app adapted for local Docker: tenant field, stage-isolation profiles, paragraph-chunked `docp` and real-data `rfq` schemas, cross-encoder + ColBERT + RRF rank profiles |
-| [`deck/`](deck/) | `deck.html` — a 30-slide deck covering what was tested, the technique behind each stage, and what the measurements showed |
+| [`deck/`](deck/) | `deck.html` — a 31-slide deck covering what was tested, the technique behind each stage, and what the measurements showed |
 
 ## Headline results
 
@@ -237,6 +243,13 @@ cross-tenant leaks per arm.
     family (+0.109, p<0.0001): on a near-duplicate corpus the discriminating
     signal is phrasing nuance — dense geometry's home turf, not term
     weighting's.
+17. **The engine didn't matter; the recipe did.** Fed the same embeddings
+    and config (Gap 9), Qdrant reproduces the offline scan identically on
+    all 464 queries, shows zero ANN-under-filter loss, and ties served
+    Vespa (+0.003; only 19/232 queries differ at all — the embedding path,
+    not the index). The deployable recipe is portable to any vector store
+    with payload filtering; what Vespa bought was the *exploration* — the
+    15-experiment search ran as rank-profile edits in one engine.
 
 ## Reproducing
 
@@ -284,6 +297,10 @@ python3 benchmark/run_rfq.py --queries queries-rfq-para-all.jsonl \
 # 7. Learned sparse (Gap 8): SPLADE vs dense, offline — downloads the
 #    SPLADE++ checkpoint (~450 MB) on first run, no Vespa needed
 python3 benchmark/gap8_splade.py
+
+# 8. Engine bake-off (Gap 9): the winning recipe served from Qdrant
+docker run -d --name qdrant-bakeoff -p 127.0.0.1:6333:6333 qdrant/qdrant
+python3 benchmark/gap9_qdrant.py
 ```
 
 The questionnaire corpus is committed, so steps 4–5 need no data preparation.
