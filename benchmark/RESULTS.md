@@ -666,6 +666,48 @@ Vespa's default feed-block limits (HTTP 507 mid-feed at 77% disk vs the
 
 ---
 
+# Gap 8: learned sparse retrieval (SPLADE) — run 2026-08-06
+
+Every retrieval family in the study had a number except learned sparse.
+SPLADE expands query and document into weighted vocabulary terms through an
+MLM head — on paper, exactly the blend this workload wants: BM25's
+exact-match ceiling on verbatim re-runs plus learned expansion to survive
+paraphrase, where plain BM25 collapses (0.279). `gap8_splade.py`, offline on
+the Gap 7 bake-off harness (exact within-tenant scan; the offline nomic-q2q
+control reproduces Gap 7's 0.763 / 0.805 exactly). Model:
+`naver/splade-cocondenser-ensembledistil` (SPLADE++, the canonical ungated
+checkpoint); arms are {nomic, SPLADE} × {answer text, stored question} plus
+the Gap 7 symmetric winner. Per-query scores in `results/gap8/`.
+
+| offline arm (tenant-filtered) | orig-47 | oos-185 | full-232 | verbatim |
+|---|---|---|---|---|
+| nomic — answer text | 0.512 | 0.646 | 0.619 | 0.935 |
+| nomic — q2q, asym prefixes | 0.644 | 0.794 | 0.763 | 0.965 |
+| nomic — q2q, symmetric | **0.706** | **0.830** | **0.805** | **0.966** |
+| SPLADE — answer text | 0.382 | 0.497 | 0.474 | 0.942 |
+| SPLADE — q2q | 0.496 | 0.605 | 0.583 | 0.958 |
+
+**43. Learned sparse halves BM25's paraphrase deficit — and still isn't
+close; match-the-question holds in its third retrieval family.** SPLADE-q2q
+reaches 0.496 on the original 47 paraphrases where BM25 scored 0.279 — the
+learned expansion is real — but every dense arm beats it by wide,
+significant margins (−0.180 vs the baseline library model, −0.222 vs the
+symmetric winner, both p<0.0001, near-identical out-of-sample), and
+verbatim offers sparse no refuge (0.958 vs 0.966, p≈0.001). Meanwhile
+SPLADE-q2q beats SPLADE-answer +0.109 (p<0.0001): match-the-question now
+replicates across dense, rerankers and sparse alike. The near-duplicate
+corpus explains the loss — every tenant answers the same questionnaire, so
+expanded terms are shared across all candidates and the discriminating
+signal is phrasing nuance, which dense geometry captures and term weighting
+doesn't. No sparse leg earns a place in the recipe. Caveats: one 2022-era
+MS MARCO-trained checkpoint, zero-shot (SPLADE-v3 is gated; OpenSearch
+neural-sparse untested; domain fine-tuning could move it — Gap 2 moved a
+dense model +0.031); offline protocol (serving ≈ −0.02, Gap 5); the BM25
+comparison crosses the offline/served boundary, though the gap dwarfs that
+shift.
+
+---
+
 # Evaluation methodology & limitations
 
 ## How things were measured

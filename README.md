@@ -12,7 +12,7 @@ actually earn their cost.
 > prefix** (it's a symmetric task) and keeping float title vectors. The
 > embedder is the blueprint's own `nomic modernbert-embed-base`: a bake-off
 > found that conditioning it symmetrically beat swapping in newer models
-> (bge-m3, Qwen3) entirely. That free
+> (bge-m3, Qwen3) and a learned-sparse SPLADE arm entirely. That free
 > config lifted the hard paraphrase case 0.505 → **0.703** nDCG@10 and covers
 > a blended verbatim+paraphrase workload at **0.883**, best-in-study on both
 > styles at once (so a query-style router buys nothing). Everything more expensive
@@ -85,10 +85,10 @@ rather than a clean negative.
 |---|---|
 | [`spec/target-architecture.md`](spec/target-architecture.md) | The fictional scenario and target stack, mapped onto blueprint features |
 | [`LABBOOK.md`](LABBOOK.md) | Chronological lab notebook — question, design, results, conclusions per experiment (Exps 1–15) |
-| [`benchmark/RESULTS.md`](benchmark/RESULTS.md) | Full findings (1–27) with per-query diagnostics |
+| [`benchmark/RESULTS.md`](benchmark/RESULTS.md) | Full findings (1–43) with per-query diagnostics |
 | [`benchmark/`](benchmark/README.md) | Both datasets in full — 39 adversarial docs and the 940-answer questionnaire corpus — plus query sets, graded TREC qrels, scorer, runners, training scripts and every raw run |
 | [`vespa-app/`](vespa-app/) | The blueprint app adapted for local Docker: tenant field, stage-isolation profiles, paragraph-chunked `docp` and real-data `rfq` schemas, cross-encoder + ColBERT + RRF rank profiles |
-| [`deck/`](deck/) | `deck.html` — a 27-slide deck covering what was tested, the technique behind each stage, and what the measurements showed |
+| [`deck/`](deck/) | `deck.html` — a 30-slide deck covering what was tested, the technique behind each stage, and what the measurements showed |
 
 ## Headline results
 
@@ -107,6 +107,7 @@ wording):
 | BM25 (lexical) | 0.279 | fast |
 | blueprint hybrid | 0.436 | fast |
 | RRF fusion (untrained) | 0.489 | fast |
+| SPLADE learned sparse, q2q (offline, Gap 8) | 0.496 | fast |
 | semantic (embed the answer) | 0.505 | fast |
 | ColBERT late interaction | 0.517 | ~60 ms/q |
 | cross-encoder rerank | 0.561–0.578 | ~2.5 s/q |
@@ -228,6 +229,14 @@ cross-tenant leaks per arm.
     zero query cost, strictly dominating the HyDE rewrite. An embedder
     bake-off confirmed the config mattered more than the model: symmetric
     nomic beat bge-m3 and Qwen3-0.6B (instructed or not) outright.
+16. **Learned sparse retrieval doesn't rescue lexical here.** SPLADE (Gap 8,
+    offline) halves BM25's paraphrase collapse (0.279 → 0.496) but loses to
+    every dense arm by wide, significant margins (−0.222 vs the symmetric
+    library model, p<0.0001) and finds no refuge at the verbatim ceiling
+    (0.958 vs 0.966). Match-the-question replicates in its third retrieval
+    family (+0.109, p<0.0001): on a near-duplicate corpus the discriminating
+    signal is phrasing nuance — dense geometry's home turf, not term
+    weighting's.
 
 ## Reproducing
 
@@ -271,6 +280,10 @@ python3 benchmark/run_rfq.py --queries queries-rfq-para-all.jsonl \
   --tag para-all --outdir benchmark/results/exp15
 #    regenerating the rewrites / scaling further needs OPENROUTER_API_KEY:
 #    hyde_generate.py --queries <set>.jsonl, scale_para.py
+
+# 7. Learned sparse (Gap 8): SPLADE vs dense, offline — downloads the
+#    SPLADE++ checkpoint (~450 MB) on first run, no Vespa needed
+python3 benchmark/gap8_splade.py
 ```
 
 The questionnaire corpus is committed, so steps 4–5 need no data preparation.

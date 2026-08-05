@@ -1220,3 +1220,58 @@ current one is being asked to do.
 the prefix result is one model family — other prefix-conditioned embedders
 (e5, Cohere input_type) should replicate it before it's called general; all
 of limitation 1 applies.
+
+## 2026-08-06 — Gap 8: learned sparse retrieval (SPLADE)
+
+**Question.** Every retrieval family in the study has a number except
+learned sparse. SPLADE expands query and document into weighted vocabulary
+terms through an MLM head — on paper, exactly the blend this workload wants:
+BM25's exact-match ceiling on verbatim re-runs plus learned expansion to
+survive paraphrase, where plain BM25 collapses (0.279). Two questions:
+*(a)* does the expansion actually close the paraphrase gap, and *(b)* does
+the study's central rule — match the stored **question**, not the answer —
+hold in a third retrieval family?
+
+**Design.** Offline (`gap8_splade.py`), same exact within-tenant scan as the
+Gap 7 bake-off. Model: `naver/splade-cocondenser-ensembledistil` (SPLADE++,
+the canonical ungated checkpoint); max-pooled `log(1+ReLU(logits))` over the
+30,522-term vocabulary, dot-product scoring. Five arms — {nomic, SPLADE} ×
+{answer text, stored question}, plus the Gap 7 symmetric winner — on the
+scaled paraphrase set and verbatim. Harness check: offline nomic-q2q
+reproduces the Gap 7 bake-off exactly (0.763 asym / 0.805 sym). Per-query
+scores in `results/gap8/splade.json`.
+
+**Results (offline, nDCG@10, tenant-filtered).**
+
+| arm | orig-47 | new-185 (oos) | full-232 | verbatim |
+|---|---|---|---|---|
+| nomic — answer text | 0.512 | 0.646 | 0.619 | 0.935 |
+| nomic — q2q, asym prefixes | 0.644 | 0.794 | 0.763 | 0.965 |
+| nomic — q2q, symmetric (Gap 7 winner) | **0.706** | **0.830** | **0.805** | **0.966** |
+| SPLADE — answer text | 0.382 | 0.497 | 0.474 | 0.942 |
+| SPLADE — q2q | 0.496 | 0.605 | 0.583 | 0.958 |
+
+Paired bootstrap: SPLADE-q2q over SPLADE-answer **+0.109, p<0.0001** — the
+library rule replicates in its third family. Everything else is a loss:
+SPLADE-q2q vs nomic-q2q −0.180, vs the symmetric winner −0.222 (both
+p<0.0001, near-identical out-of-sample), and on verbatim −0.008 (p≈0.001) —
+at the lexical ceiling, sparse still doesn't beat dense.
+
+**Finding 43 — learned sparse halves BM25's paraphrase deficit and still
+isn't close; match-the-question holds in its third retrieval family.**
+Against BM25's 0.279 on the original 47 paraphrases, SPLADE-q2q reaches
+0.496 — the expansion is real and buys back most of the lexical collapse —
+but every dense arm beats it by wide, significant margins, out-of-sample
+included, and verbatim offers sparse no refuge (0.958 vs 0.966). The
+near-duplicate corpus explains why: every tenant answers the same
+questionnaire, so expanded terms are shared across all candidates and the
+discriminating signal is phrasing nuance — which dense geometry captures
+and term weighting doesn't. No sparse leg earns a place in the recipe;
+the two-line recipe stands unchanged.
+
+**Caveats.** Single 2022-era MS MARCO-trained checkpoint, zero-shot —
+SPLADE-v3 is gated, OpenSearch's neural-sparse models untested, and domain
+fine-tuning could move it (Gap 2 moved a dense model +0.031); offline
+protocol (serving ≈ −0.02, Gap 5); the BM25 comparison crosses the
+offline/served boundary, though the gap dwarfs that shift; all of
+limitation 1 applies.

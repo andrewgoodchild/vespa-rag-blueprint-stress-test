@@ -389,14 +389,14 @@
       <span class="tag">ColBERT</span>
       <span class="tag">distillation</span>
     </div>
-    <div class="pagenum">01 / 29</div>
+    <div class="pagenum">01 / 30</div>
   </section>
 
   <section class="slide" id="s2">
     <div class="topbar">
       <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>what's in here</b></div>
       <div class="dotgrp">
-        <span>29 slides · concepts, evidence, reference</span>
+        <span>30 slides · concepts, evidence, reference</span>
         <span class="dot on"></span><span class="dot"></span><span class="dot"></span>
       </div>
     </div>
@@ -410,29 +410,29 @@
           <div><div class="gl">The engine and the blueprint</div><div class="gd">what Vespa does that a vector index can't · what the blueprint ships by default · the harness we built to break it</div></div>
         </div>
         <div class="grp">
-          <div class="gn">14</div>
+          <div class="gn">16</div>
           <div><div class="gl">Representation</div><div class="gd">bi-encoders &amp; contrastive fine-tuning · quantization</div></div>
         </div>
         <div class="grp">
           <div class="gn">06</div>
-          <div><div class="gl">Ways to match</div><div class="gd">RAG · lexical vs semantic · hybrid fusion (RRF) · chunking</div></div>
-        </div>
-        <div class="grp">
-          <div class="gn">17</div>
-          <div><div class="gl">RFP-specific</div><div class="gd">the library model — the winner · the "boring" structural wins</div></div>
-        </div>
-        <div class="grp">
-          <div class="gn">10</div>
-          <div><div class="gl">Ways to rank</div><div class="gd">phased ranking · learning-to-rank · cross-encoders · late interaction · distillation</div></div>
+          <div><div class="gl">Ways to match</div><div class="gd">RAG · lexical vs semantic · hybrid fusion (RRF) · learned sparse (SPLADE) · chunking</div></div>
         </div>
         <div class="grp">
           <div class="gn">19</div>
+          <div><div class="gl">RFP-specific</div><div class="gd">the library model — the winner · the "boring" structural wins</div></div>
+        </div>
+        <div class="grp">
+          <div class="gn">11</div>
+          <div><div class="gl">Ways to rank</div><div class="gd">phased ranking · learning-to-rank · cross-encoders · late interaction · distillation</div></div>
+        </div>
+        <div class="grp">
+          <div class="gn">22</div>
           <div><div class="gl">What we learned</div><div class="gd">generation · measurement rigour · 15 runs · the cost/quality frontier · through-lines · limits</div></div>
         </div>
       </div>
       <div class="footnote" style="margin-top:auto;padding-bottom:40px"><b>Reference:</b> a three-page glossary at the back — 36 terms, every piece of vocabulary this deck uses.</div>
     </div>
-    <div class="pagenum">02 / 29</div>
+    <div class="pagenum">02 / 30</div>
   </section>
 
 <section class="slide" id="s3">
@@ -494,7 +494,7 @@
 
       <div class="footnote"><b>pgvector as the reference point</b>&nbsp;&nbsp;·&nbsp;&nbsp;it is the common default, and the comparison is about what one engine does in one query — not product quality</div>
     </div>
-    <div class="pagenum">03 / 29</div>
+    <div class="pagenum">03 / 30</div>
   </section>
 
 <section class="slide" id="s4">
@@ -567,7 +567,7 @@
         <div class="txt">No tenant concept, no cross-encoder, no late interaction — <b>those are this study's additions</b>.</div>
       </div>
     </div>
-    <div class="pagenum">04 / 29</div>
+    <div class="pagenum">04 / 30</div>
   </section>
 
 <section class="slide" id="s5">
@@ -637,7 +637,7 @@
         <div class="pq">"Diagnose before you optimise, ship incrementally, don't fool yourself with noisy results."</div>
       </div>
     </div>
-    <div class="pagenum">05 / 29</div>
+    <div class="pagenum">05 / 30</div>
   </section>
 
 <section class="slide" id="s6">
@@ -672,7 +672,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">06 / 29</div>
+    <div class="pagenum">06 / 30</div>
   </section>
 
 <section class="slide" id="s7">
@@ -707,7 +707,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">07 / 29</div>
+    <div class="pagenum">07 / 30</div>
   </section>
 
 <section class="slide" id="s8">
@@ -742,7 +742,42 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">08 / 29</div>
+    <div class="pagenum">08 / 30</div>
+  </section>
+
+<section class="slide" id="s8b">
+    <div class="topbar">
+      <div>vespa-rag-blueprint-stress-test&nbsp;&nbsp;<span style="color:var(--dim)">//</span>&nbsp;&nbsp;<b>ways to match</b></div>
+      <div class="dotgrp">
+        <span>learned sparse (SPLADE)</span>
+        <span class="dot on"></span><span class="dot on"></span><span class="dot"></span>
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="kicker">WAYS TO MATCH</div>
+      <h2 class="h2">Learned sparse (<span class="amb">SPLADE</span>): expand the words</h2>
+
+      <div class="concept">
+        <div class="crow">
+          <div class="cl">What it is</div>
+          <div class="cb">A third way to match: keep BM25's <b>sparse word-vector</b> form, but let a neural model <b>choose and weight the words</b>.</div>
+        </div>
+        <div class="crow">
+          <div class="cl">How it works</div>
+          <div class="cb">A masked-language-model head scores <b>every vocabulary term</b> for each text — "authenticate" lights up <i>login, password, 2FA</i> — giving a weighted set over ~30k terms. Scoring is a sparse dot product, served on the same inverted-index machinery as BM25 (in Vespa: a weighted set + <span class="n">wand</span>).</div>
+        </div>
+        <div class="crow">
+          <div class="cl">The tradeoff</div>
+          <div class="cb">Fixes vocabulary mismatch while keeping lexical exactness and cheap serving. But the expansion is only as good as its training domain — and when all candidates <b>share the same vocabulary</b>, their expansions overlap too.</div>
+        </div>
+        <div class="saw">
+          <div class="cl">What we saw</div>
+          <div class="cb">Gap 8 (offline): SPLADE++ <b>halves BM25's paraphrase collapse</b> (<span class="n">0.279 → 0.496</span>) yet loses to <b>every dense arm</b> — <span class="n">−0.222</span> vs the symmetric library model, p&lt;0.0001 — and verbatim (<span class="n">0.958</span>) sits at the lexical ceiling, still under dense <span class="n">0.966</span>. Match-the-question replicates in its third family (<span class="n">+0.109</span>). <b>No sparse leg in the recipe.</b></div>
+        </div>
+      </div>
+    </div>
+    <div class="pagenum">09 / 30</div>
   </section>
 
 <section class="slide" id="s9">
@@ -777,7 +812,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">09 / 29</div>
+    <div class="pagenum">10 / 30</div>
   </section>
 
 <section class="slide" id="s10">
@@ -812,7 +847,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">10 / 29</div>
+    <div class="pagenum">11 / 30</div>
   </section>
 
 <section class="slide" id="s11">
@@ -847,7 +882,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">11 / 29</div>
+    <div class="pagenum">12 / 30</div>
   </section>
 
 <section class="slide" id="s12">
@@ -882,7 +917,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">12 / 29</div>
+    <div class="pagenum">13 / 30</div>
   </section>
 
 <section class="slide" id="s13">
@@ -917,7 +952,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">13 / 29</div>
+    <div class="pagenum">14 / 30</div>
   </section>
 
 <section class="slide" id="s14">
@@ -952,7 +987,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">14 / 29</div>
+    <div class="pagenum">15 / 30</div>
   </section>
 
 <section class="slide" id="s15">
@@ -987,7 +1022,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">15 / 29</div>
+    <div class="pagenum">16 / 30</div>
   </section>
 
 <section class="slide" id="s15b">
@@ -1023,7 +1058,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">16 / 29</div>
+    <div class="pagenum">17 / 30</div>
   </section>
 
 <section class="slide" id="s16">
@@ -1058,7 +1093,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">17 / 29</div>
+    <div class="pagenum">18 / 30</div>
   </section>
 
 <section class="slide" id="s17">
@@ -1093,7 +1128,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">18 / 29</div>
+    <div class="pagenum">19 / 30</div>
   </section>
 
 <section class="slide" id="s17b">
@@ -1128,7 +1163,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">19 / 29</div>
+    <div class="pagenum">20 / 30</div>
   </section>
 
 <section class="slide" id="s18">
@@ -1163,7 +1198,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">20 / 29</div>
+    <div class="pagenum">21 / 30</div>
   </section>
 
 <section class="slide" id="s19">
@@ -1203,7 +1238,7 @@
         <div class="cq">Our data is security-compliance — a standardized <span class="tl">best case</span> — and the corpus is <span class="amb">LLM-generated</span>. The <span class="tl">architecture</span> (filter, library model, phased ranking, distillation, fine-tuning) should port; the <span class="amb">magnitudes</span> (BM25's dominance, the library jump) won't. Pricing, capabilities, and essay questions are <span class="amb">untested</span>. Know the limits of your eval.</div>
       </div>
     </div>
-    <div class="pagenum">21 / 29</div>
+    <div class="pagenum">22 / 30</div>
   </section>
 
 <section class="slide" id="s20">
@@ -1238,7 +1273,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">22 / 29</div>
+    <div class="pagenum">23 / 30</div>
   </section>
 
 <section class="slide" id="s21">
@@ -1324,7 +1359,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">23 / 29</div>
+    <div class="pagenum">24 / 30</div>
   </section>
 
 <section class="slide" id="s22">
@@ -1442,7 +1477,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">24 / 29</div>
+    <div class="pagenum">25 / 30</div>
   </section>
 
 <section class="slide" id="s23">
@@ -1496,7 +1531,7 @@
         </div>
       </div>
     </div>
-    <div class="pagenum">25 / 29</div>
+    <div class="pagenum">26 / 30</div>
   </section>
 
 <section class="slide" id="s24">
@@ -1533,7 +1568,7 @@
     <div class="closer">
       <div class="cq">This study set out to <span class="amb">diagnose before optimising</span>, and not to fool itself with noisy results. That discipline is exactly what it kept having to apply to its own findings.</div>
     </div>
-    <div class="pagenum">26 / 29</div>
+    <div class="pagenum">27 / 30</div>
   </section>
 
 <section class="slide" id="s25">
@@ -1549,7 +1584,7 @@
       <h2 class="h2">The <span class="amb">vocabulary</span> — retrieval &amp; ranking</h2>
       <div class="gloss">
         <div class="gterm"><div class="gt">Embedding</div><div class="gdf">text turned into a vector of numbers; nearby vectors mean similar things.</div></div>
-        <div class="gterm"><div class="gt">Sparse vs dense</div><div class="gdf">sparse = word-count vectors (BM25); dense = learned meaning vectors.</div></div>
+        <div class="gterm"><div class="gt">Sparse vs dense</div><div class="gdf">sparse = word-weight vectors, counted (BM25) or learned (SPLADE); dense = learned meaning vectors.</div></div>
         <div class="gterm"><div class="gt">ANN / HNSW</div><div class="gdf">approximate nearest-neighbour search — finds close vectors fast via a graph index instead of scanning every doc.</div></div>
         <div class="gterm"><div class="gt">Cosine / dot / hamming</div><div class="gdf">ways to measure vector closeness: angle between vectors / raw overlap / differing bits (for binary).</div></div>
         <div class="gterm"><div class="gt">Tokenization</div><div class="gdf">splitting text into the sub-word units a model actually reads.</div></div>
@@ -1562,7 +1597,7 @@
         <div class="gterm"><div class="gt">Chunk / passage</div><div class="gdf">the slice of a document that actually gets embedded and retrieved.</div></div>
       </div>
     </div>
-    <div class="pagenum">27 / 29</div>
+    <div class="pagenum">28 / 30</div>
   </section>
 
 <section class="slide" id="s26">
@@ -1591,7 +1626,7 @@
         <div class="gterm"><div class="gt">qrels · CV · bootstrap</div><div class="gdf">the graded answer key / test-on-unseen-queries / resample to check a gain is real, not noise.</div></div>
       </div>
     </div>
-    <div class="pagenum">28 / 29</div>
+    <div class="pagenum">29 / 30</div>
   </section>
 
 <section class="slide" id="s27">
@@ -1621,7 +1656,7 @@
         <div class="gterm"><div class="gt">Loss function</div><div class="gdf">what training actually optimizes; pick one that doesn't match the task and a better model ranks worse.</div></div>
       </div>
     </div>
-    <div class="pagenum">29 / 29</div>
+    <div class="pagenum">30 / 30</div>
   </section>
 
 </div>
