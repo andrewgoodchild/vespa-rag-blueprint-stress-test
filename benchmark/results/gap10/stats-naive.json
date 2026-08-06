@@ -1,0 +1,38 @@
+{
+ "tanager_geo": {
+  "units": 242,
+  "recovered": 242,
+  "of": 258,
+  "coverage": 0.938,
+  "answer_sim": 0.981,
+  "junk": 0,
+  "dupes": 0
+ },
+ "kestrel_cloud": {
+  "units": 214,
+  "recovered": 214,
+  "of": 214,
+  "coverage": 1.0,
+  "answer_sim": 0.846,
+  "junk": 0,
+  "dupes": 0
+ },
+ "orrery_suite": {
+  "units": 234,
+  "recovered": 234,
+  "of": 234,
+  "coverage": 1.0,
+  "answer_sim": 0.996,
+  "junk": 0,
+  "dupes": 0
+ },
+ "pellucid_data": {
+  "units": 234,
+  "recovered": 234,
+  "of": 234,
+  "coverage": 1.0,
+  "answer_sim": 0.982,
+  "junk": 0,
+  "dupes": 0
+ }
+}

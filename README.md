@@ -24,8 +24,10 @@ actually earn their cost.
 > query set was scaled — while the symmetric-prefix fix, a one-line config
 > change, passed that same bar at p<0.0001 and beat swapping in newer
 > embedders outright. The recipe is also engine-portable: at fixed model
-> and config, Qdrant serves it at identical quality (Gap 9). The rest of
-> the repo is the evidence chain for those
+> and config, Qdrant serves it at identical quality (Gap 9) — and the
+> document layer is cheap to cross: corpora parsed back out of messy
+> PDF/DOCX/XLSX renderings retrieve identically to clean text (Gap 10).
+> The rest of the repo is the evidence chain for those
 > two lines, and the measurement harness that kept killing everything else.
 > Biggest caveat: the corpus is LLM-generated and its difficulty is a dial
 > we set — validate the magnitudes on real data before trusting them.
@@ -91,10 +93,10 @@ rather than a clean negative.
 |---|---|
 | [`spec/target-architecture.md`](spec/target-architecture.md) | The fictional scenario and target stack, mapped onto blueprint features |
 | [`LABBOOK.md`](LABBOOK.md) | Chronological lab notebook — question, design, results, conclusions per experiment (Exps 1–15) |
-| [`benchmark/RESULTS.md`](benchmark/RESULTS.md) | Full findings (1–44) with per-query diagnostics |
+| [`benchmark/RESULTS.md`](benchmark/RESULTS.md) | Full findings (1–46) with per-query diagnostics |
 | [`benchmark/`](benchmark/README.md) | Both datasets in full — 39 adversarial docs and the 940-answer questionnaire corpus — plus query sets, graded TREC qrels, scorer, runners, training scripts and every raw run |
 | [`vespa-app/`](vespa-app/) | The blueprint app adapted for local Docker: tenant field, stage-isolation profiles, paragraph-chunked `docp` and real-data `rfq` schemas, cross-encoder + ColBERT + RRF rank profiles |
-| [`deck/`](deck/) | `deck.html` — a 31-slide deck covering what was tested, the technique behind each stage, and what the measurements showed |
+| [`deck/`](deck/) | `deck.html` — a 32-slide deck covering what was tested, the technique behind each stage, and what the measurements showed |
 
 ## Headline results
 
@@ -250,6 +252,17 @@ cross-tenant leaks per arm.
     not the index). The deployable recipe is portable to any vector store
     with payload filtering; what Vespa bought was the *exploration* — the
     15-experiment search ran as rank-profile edits in one engine.
+18. **The document layer is cheap to cross — and retrieval metrics are
+    blind to what it breaks.** Rendering the corpus into four flavours of
+    messy vendor documents (page-split PDF tables, DOCX callout boxes,
+    SIG-style XLSX, two-column prose with no IDs) and parsing it back
+    (Gap 10): format-aware parsing retrieves *query-for-query identically*
+    to clean text; a naive text-dump loses only where whole units vanish
+    (−0.014, all from 16 wrapped table refs). But naive also returned 31
+    answers as empty text at zero nDCG cost — the library model matches on
+    the question, so answer-side parse damage surfaces only at generation.
+    Ingestion QA needs its own fidelity metric; no retrieval metric will
+    raise the alarm. (Digital text layer only — scans/OCR untested.)
 
 ## Reproducing
 
@@ -301,6 +314,16 @@ python3 benchmark/gap8_splade.py
 # 8. Engine bake-off (Gap 9): the winning recipe served from Qdrant
 docker run -d --name qdrant-bakeoff -p 127.0.0.1:6333:6333 qdrant/qdrant
 python3 benchmark/gap9_qdrant.py
+
+# 9. The document layer (Gap 10): render messy PDF/DOCX/XLSX vendor docs,
+#    parse them back three ways, score retrieval over what survived
+pip install reportlab openpyxl pymupdf pdfplumber python-docx
+python3 benchmark/gap10_render_docs.py
+python3 benchmark/gap10_parse.py --arms naive,structured
+python3 benchmark/gap10_eval.py
+#    the docling arm downgrades transformers — run it from its own venv:
+#    python -m venv /tmp/dv && /tmp/dv/bin/pip install docling
+#    /tmp/dv/bin/python benchmark/gap10_parse.py --arms docling
 ```
 
 The questionnaire corpus is committed, so steps 4–5 need no data preparation.

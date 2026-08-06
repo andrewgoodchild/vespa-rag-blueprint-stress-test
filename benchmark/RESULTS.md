@@ -747,6 +747,53 @@ recipe — lexical/hybrid/in-engine-reranking arms were not ported.
 
 ---
 
+# Gap 10: the document layer — parse → segment → retrieve (run 2026-08-06)
+
+Every number in the study starts from clean JSONL; real RFP responses
+arrive as PDFs, Word files and spreadsheets. `gap10_render_docs.py` renders
+the 940 ground-truth answers into four per-vendor document sets, each a
+different real-world flavour of mess (text verbatim, mess structural only):
+a 53-page tabular PDF whose tables split across pages — with Ref cells that
+wrap mid-token in one domain, an accidental flaw we kept; a DOCX H1/H2/H3
+hierarchy with every 7th answer inside a callout table; an 18-sheet
+SIG-style XLSX with continuation rows and comment noise; a two-column prose
+PDF with no control IDs at all. `gap10_parse.py` parses them back three
+ways — **naive** (text dump + regex), **structured** (format-native, ~300
+lines), **docling** (ML layout, isolated venv) — and `gap10_eval.py` scores
+the winning recipe over each recovered corpus, same qrels. Unmapped units
+stay as distractors. Runs in `results/gap10/`, documents in `rfq-docs/`.
+
+| arm | recovered | answer-sim | para-232 | verbatim |
+|---|---|---|---|---|
+| clean control | — | — | 0.805 | 0.966 |
+| naive | 924/940 | 0.846–0.996 | 0.791 | 0.950 |
+| structured | **940/940** | **1.000** | **0.805** | **0.966** |
+| docling | 937/940 | 0.999–1.000 | **0.805** | 0.965 |
+
+**45. The document layer is cheap to cross, and coverage is the only thing
+retrieval feels.** Structured parsing is query-for-query identical to clean
+text on all 464 queries; Docling matches with zero format-specific code
+(3 prose-PDF units lost, −0.0009 verbatim). Naive's −0.0144 (p≈0.034) is
+entirely the 16 pdf-table units whose wrapped Refs its regex missed
+(pdf-tables flavour −0.051, p≈0.03; every other flavour delta exactly 0) —
+unit loss, not text quality. Parse QA for this pipeline reduces to one
+number: units recovered.
+
+**46. Retrieval metrics are blind to answer-side parse damage — the
+library model's robustness is also a trap.** Naive returned 31 DOCX
+answers as empty text (tables dropped by `doc.paragraphs`) and soaked
+others in footer noise, at zero nDCG cost: the library model embeds the
+recovered *question*. The damage surfaces only at generation, when the
+retrieved unit has nothing to read. Ingestion needs its own fidelity
+metric (answer-sim here); no retrieval metric raises the alarm — finding
+6's lesson at a second layer of the stack. Caveats: one generator, digital
+text layer, no scans (OCR untested — the obvious next tier); the
+structured parser had seen the formats it parses (the production
+situation, but it bounds generality); answer-damage immunity is specific
+to question-matching retrieval; all of limitation 1 applies.
+
+---
+
 # Evaluation methodology & limitations
 
 ## How things were measured

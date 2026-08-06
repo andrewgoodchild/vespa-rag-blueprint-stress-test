@@ -1330,3 +1330,86 @@ measured on a laptop with different embedding paths, deliberately not
 compared; the tie is specific to the dense-only recipe — arms that need
 lexical/hybrid/in-engine reranking were not ported; all of limitation 1
 applies.
+
+## 2026-08-06 — Gap 10: the document layer — parse → segment → retrieve
+
+**Question.** Every number in the study starts from clean JSONL; real RFP
+responses arrive as PDFs, Word files and spreadsheets. The corpus
+construction bypassed the ingestion layer entirely — limitation 1's
+under-appreciated sibling. How much of the clean-text retrieval quality
+survives the document layer, and which parsing effort earns what?
+
+**Design.** Render the inverse of parsing: `gap10_render_docs.py` turns the
+940 ground-truth answers into four per-vendor document sets, each a
+different real-world flavour of mess (question and answer text verbatim —
+the mess is structural only):
+
+| vendor | format | flavour |
+|---|---|---|
+| tanager_geo | PDF, 53 pp | bordered Ref/Question/Response tables splitting across pages, cover page, headers/footers; the MON domain's Ref cells wrap mid-token (wide glyphs) — an accidental, kept flaw |
+| kestrel_cloud | DOCX | H1/H2/H3 heading hierarchy, decimal numbering, every 7th answer inside a 1×1 callout table |
+| orrery_suite | XLSX, 18 sheets | SIG-style: merged titles, Ref/Question/Response/Comments columns, answers split across continuation rows, comment noise |
+| pellucid_data | PDF, 29 pp, two-column | prose, no control IDs anywhere, bold "Q17." run-ins, footers interleaving mid-answer |
+
+Three parsing arms (`gap10_parse.py`): **naive** (raw text dump + one regex
+segmenter — fitz page text, docx paragraphs which silently drop tables,
+tab-joined xlsx rows), **structured** (format-native: pdfplumber tables,
+heading-walk of the docx body, column-aware sheet reads, font-based
+two-column reconstruction), **docling** (IBM Docling → markdown → generic
+segmenter; run in an isolated venv because its pin downgrades
+transformers). Recovered units map back to question_ids by Ref where the
+format kept one, else fuzzy question match (an evaluation aid — qrels need
+ids; production would index units without them). Unmapped units stay as
+distractors. `gap10_eval.py` then scores the winning recipe over each
+recovered corpus, same qrels, exact within-tenant scan; per-tenant splits
+are per-flavour splits by construction. Corpus fidelity first:
+
+| arm | recovered | answer-sim | worst flavour |
+|---|---|---|---|
+| naive | 924/940 | 0.846–0.996 | pdf-tables 242/258 (16 wrapped-ref units lost); docx answer-sim 0.846 (31 boxed answers came back empty) |
+| structured | **940/940** | **1.000** everywhere | — |
+| docling | 937/940 | 0.999–1.000 | pdf-prose 231/234 (3 units lost: CRY-02.1, INC-02.2, MON-04.1) |
+
+**Results (nDCG@10, tenant-filtered, vs clean-corpus control).**
+
+| arm | pdf-tables | docx-headings | xlsx | pdf-prose | para-232 | verbatim |
+|---|---|---|---|---|---|---|
+| clean control | 0.784 | 0.828 | 0.836 | 0.776 | 0.805 | 0.966 |
+| naive | 0.733 | 0.828 | 0.836 | 0.776 | 0.791 | 0.950 |
+| structured | 0.784 | 0.828 | 0.836 | 0.776 | **0.805** | **0.966** |
+| docling | 0.784 | 0.828 | 0.836 | 0.776 | **0.805** | 0.965 |
+
+Paired bootstrap: structured is **query-for-query identical** to clean on
+all 464 queries (delta exactly 0). Docling identical on paraphrases;
+−0.0009 verbatim (deterministic: the 3 lost units each cost their own
+verbatim query — trivial magnitude, consistent direction). Naive −0.0144
+(p≈0.034) para / −0.0160 (p≈0.032) verbatim — **every point of it from the
+16 lost pdf-table units** (pdf-tables −0.051, p≈0.03; the other three
+flavours: delta exactly 0).
+
+**Finding 45 — the document layer is cheap to cross, and coverage is the
+only thing retrieval feels.** Format-aware parsing (~300 lines, no ML)
+recovers the corpus with zero retrieval loss; Docling near-identically with
+zero format-specific code. The naive baseline's entire deficit is *unit
+loss* — rows whose wrapped Ref its regex missed — not text quality. For
+this pipeline, parse QA reduces to one number: units recovered.
+
+**Finding 46 — retrieval metrics are blind to answer-side parse damage;
+the library model's robustness is also a trap.** Naive returned 31 kestrel
+answers as *empty text* (tables dropped by `doc.paragraphs`) and
+contaminated others with footers and comments — at **zero** nDCG cost,
+because the library model embeds the recovered *question*. The damage
+surfaces only at generation, when the retrieved unit has nothing to read.
+An ingestion pipeline needs its own fidelity metric (answer-sim here);
+no retrieval metric will raise the alarm. Finding 6's lesson — the metric
+you ship can be blind to the failure you have — now holds at a second
+layer of the stack.
+
+**Caveats.** The rendered documents are regular by construction — one
+generator, digital text layer, no scans (OCR untested — the obvious next
+tier), no exotic layouts; real filed RFPs are worse. The structured parser
+was written by someone who had seen the four formats — that is the honest
+production situation, but it bounds the generality claim. The
+answer-damage immunity is specific to question-matching retrieval:
+answer-embedding pipelines would feel it directly. All of limitation 1
+applies.
