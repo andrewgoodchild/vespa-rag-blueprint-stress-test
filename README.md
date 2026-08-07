@@ -27,6 +27,9 @@ actually earn their cost.
 > and config, Qdrant serves it at identical quality (Gap 9) — and the
 > document layer is cheap to cross: corpora parsed back out of messy
 > PDF/DOCX/XLSX renderings retrieve identically to clean text (Gap 10).
+> Graph retrieval (LightRAG) loses every metric to the free arm even on
+> the multi-hop queries it exists for, and a naively shared multi-tenant
+> graph leaks ~75% of its retrieved context across vendors (Gap 11).
 > The rest of the repo is the evidence chain for those
 > two lines, and the measurement harness that kept killing everything else.
 > Biggest caveat: the corpus is LLM-generated and its difficulty is a dial
@@ -93,10 +96,10 @@ rather than a clean negative.
 |---|---|
 | [`spec/target-architecture.md`](spec/target-architecture.md) | The fictional scenario and target stack, mapped onto blueprint features |
 | [`LABBOOK.md`](LABBOOK.md) | Chronological lab notebook — question, design, results, conclusions per experiment (Exps 1–15) |
-| [`benchmark/RESULTS.md`](benchmark/RESULTS.md) | Full findings (1–46) with per-query diagnostics |
+| [`benchmark/RESULTS.md`](benchmark/RESULTS.md) | Full findings (1–49) with per-query diagnostics |
 | [`benchmark/`](benchmark/README.md) | Both datasets in full — 39 adversarial docs and the 940-answer questionnaire corpus — plus query sets, graded TREC qrels, scorer, runners, training scripts and every raw run |
 | [`vespa-app/`](vespa-app/) | The blueprint app adapted for local Docker: tenant field, stage-isolation profiles, paragraph-chunked `docp` and real-data `rfq` schemas, cross-encoder + ColBERT + RRF rank profiles |
-| [`deck/`](deck/) | `deck.html` — a 32-slide deck covering what was tested, the technique behind each stage, and what the measurements showed |
+| [`deck/`](deck/) | `deck.html` — a 33-slide deck covering what was tested, the technique behind each stage, and what the measurements showed |
 
 ## Headline results
 
@@ -263,6 +266,18 @@ cross-tenant leaks per arm.
     the question, so answer-side parse damage surfaces only at generation.
     Ingestion QA needs its own fidelity metric; no retrieval metric will
     raise the alarm. (Digital text layer only — scans/OCR untested.)
+19. **Graph RAG fails this workload three ways.** On new compositional and
+    overview query sets (Gap 11): the plain library model already finds
+    *all* constituent parts for 88% of multi-part queries, so the
+    "multi-hop problem" mostly isn't one; LLM query decomposition adds an
+    unconfirmed +0.05 there while significantly *hurting* overview queries
+    (−0.097 coverage, p≈0.0002); and LightRAG loses every metric to the
+    free arm by −0.44 to −0.83 (p<0.0001) — its entity-summary context
+    returned zero source documents for 67 of 90 per-tenant queries. The
+    durable number: a naively shared multi-tenant graph leaks **~75% of
+    retrieved context** across vendors, because entity merging fuses
+    near-identical statements into single cross-tenant nodes that no
+    post-hoc filter can unmix.
 
 ## Reproducing
 
@@ -324,6 +339,12 @@ python3 benchmark/gap10_eval.py
 #    the docling arm downgrades transformers — run it from its own venv:
 #    python -m venv /tmp/dv && /tmp/dv/bin/pip install docling
 #    /tmp/dv/bin/python benchmark/gap10_parse.py --arms docling
+
+# 10. Graph RAG (Gap 11): multi-hop query sets, LightRAG vs the free arms.
+#     Query sets and decompositions are committed — this rerun needs no key:
+python3 benchmark/gap11_run.py
+#     Rebuilding the graphs needs OPENROUTER_API_KEY and ~$15 of credits:
+#     benchmark/gap11_lightrag.py --config tenant|shared --step build|query|score
 ```
 
 The questionnaire corpus is committed, so steps 4–5 need no data preparation.

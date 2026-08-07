@@ -794,6 +794,67 @@ to question-matching retrieval; all of limitation 1 applies.
 
 ---
 
+# Gap 11: graph retrieval, on the queries it is for (run 2026-08-06/07)
+
+Graph RAG was the one untested paradigm — and testing it on single-hop
+queries would prove nothing, so the workload was extended first
+(`gap11_gen_queries.py`, seeded plans, LLM phrasing, files committed):
+**60 compositional queries** built from 2-3 specific questionnaire
+questions (qrels grade every constituent 2, control-siblings 1; the metric
+that matters is **all-parts@10** — miss one part and the drafted answer is
+confidently wrong) and **30 domain-overview queries** (whole tenant-domain
+graded, control-coverage@10). Arms: the library model unchanged; LLM
+decomposition → per-sub-question retrieval → merge (~1 call, cached);
+LightRAG 1.5.5 (gemini-2.5-flash extraction ~$14/2.5 h, nomic embeddings,
+local + hybrid) as **per-tenant graphs** and as **one naively shared
+multi-tenant graph**, built to be measured, not to win. Retrieval-only
+scoring; context mapped to docs by answer text — the first pass mapped by
+question titles, which are identical across tenants, and mis-attributed
+~75% of matches; the tell was 140 "leaks" from physically isolated
+graphs. Instrument fixed; raw contexts stored in `results/gap11/`.
+
+| arm | ndcg-multi | parts-recall | all-parts | ndcg-global | coverage | leaked |
+|---|---|---|---|---|---|---|
+| library model (free) | 0.849 | 0.944 | 0.883 | **0.800** | **0.744** | 0 |
+| decomposition (~1 LLM call) | **0.862** | **0.967** | **0.933** | 0.737 | 0.647 | 0 |
+| LightRAG per-tenant, local | 0.158 | 0.172 | 0.100 | 0.104 | 0.090 | 0 |
+| LightRAG per-tenant, hybrid | 0.128 | 0.206 | 0.150 | 0.076 | 0.083 | 0 |
+| LightRAG shared, local | 0.317 | 0.439 | 0.200 | 0.167 | 0.154 | **668** |
+| LightRAG shared, hybrid | 0.309 | 0.472 | 0.183 | 0.172 | 0.151 | **693** |
+
+**47. The "multi-hop problem" mostly isn't one, and decomposition is a
+style router in disguise.** The unchanged library model already has every
+constituent in the top-10 for 88% of compositional queries. Decomposition
+adds +0.050 all-parts (p≈0.33, unconfirmed) and **significantly hurts
+overview queries** (coverage −0.097, p≈0.0002) — splitting "summarize
+your posture" into specifics narrows retrieval away from the domain
+centroid the raw embedding already sits on.
+
+**48. Graph retrieval loses catastrophically on its home turf, and the
+failure is structural.** Every LightRAG arm loses every metric to the
+free baseline by −0.44 to −0.83 (all p<0.0001). Mechanism: LightRAG's
+context is entity/relation summaries — per-tenant graphs returned a mean
+of 2.3 source documents per query and **zero documents for 67 of 90
+queries**. When the product is the vendor's approved verbatim text, a
+context of graph summaries is not retrieval; there is nothing to quote.
+(Global-mode community summaries might still draft passable overviews —
+a generation-stage question this harness deliberately does not credit.)
+
+**49. The shared graph leaks by construction: ~75% of retrieved context
+belongs to other tenants.** 668-693 of 900 retrieved docs per mode are
+cross-tenant (mean 2.3-2.6 of 10 from the correct vendor). Entity merging
+*is* the leak — "SOC 2", "customers", "quarterly access review" become
+single nodes fusing four vendors' near-identical statements, and no
+post-hoc filter can unmix a node. The tenant filter (finding 4) has no
+shared-graph equivalent; per-tenant graphs are the only safe shape — and
+finding 48 shows they are not worth building here. Caveats: one framework
+at default parameters, one budget extraction model; retrieval-only
+scoring undervalues graphs on overview queries by design; n=60/30;
+leakage magnitude is specific to near-duplicate multi-tenant corpora —
+exactly the RFP-library situation; all of limitation 1 applies.
+
+---
+
 # Evaluation methodology & limitations
 
 ## How things were measured
