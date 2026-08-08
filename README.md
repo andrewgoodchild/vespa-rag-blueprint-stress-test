@@ -99,7 +99,7 @@ rather than a clean negative.
 | [`benchmark/RESULTS.md`](benchmark/RESULTS.md) | Full findings (1–49) with per-query diagnostics |
 | [`benchmark/`](benchmark/README.md) | Both datasets in full — 39 adversarial docs and the 940-answer questionnaire corpus — plus query sets, graded TREC qrels, scorer, runners, training scripts and every raw run |
 | [`vespa-app/`](vespa-app/) | The blueprint app adapted for local Docker: tenant field, stage-isolation profiles, paragraph-chunked `docp` and real-data `rfq` schemas, cross-encoder + ColBERT + RRF rank profiles |
-| [`deck/`](deck/) | `deck.html` — a 46-slide deck covering what was tested, the technique behind each stage, and what the measurements showed |
+| [`deck/`](deck/) | `deck.html` — **[view the 46-slide deck rendered](https://andrewgoodchild.github.io/vespa-rag-blueprint-stress-test/deck/deck.html)** — covering what was tested, the technique behind each stage, and what the measurements showed |
 
 ## Headline results
 
